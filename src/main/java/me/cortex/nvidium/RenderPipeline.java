@@ -169,11 +169,13 @@ public class RenderPipeline {
         final int DEBUG_RENDER_LEVEL = 0;//0: no debug, 1: region debug, 2: section debug
         final boolean WRITE_DEPTH = false;
 
-
-        new NvidiumAPI("nvidium").setRegionTransformId(1, 0, 1, 0);
-        new NvidiumAPI("nvidium").setRegionTransformId(1, 0, 2, 0);
-        new NvidiumAPI("nvidium").setTransformation(1, new Matrix4f().identity().rotateTowards(new Vector3f(1,1,1), new Vector3f(0,1,0)));
+        /*
+        for (int i = 0; i <3*3*3;i++) {
+            new NvidiumAPI("nvidium").setRegionTransformId(1, i%3, (i/3)%3, ((i/3)/3)%3);
+        }
+        new NvidiumAPI("nvidium").setTransformation(1, new Matrix4f().identity().scale(1,1  ,1));
         new NvidiumAPI("nvidium").setOrigin(1, 0,0,0);
+           */
 
         Vector3i blockPos = new Vector3i(((int)Math.floor(px)), ((int)Math.floor(py)), ((int)Math.floor(pz)));
         Vector3i chunkPos = new Vector3i(blockPos.x>>4,blockPos.y>>4,blockPos.z>>4);
