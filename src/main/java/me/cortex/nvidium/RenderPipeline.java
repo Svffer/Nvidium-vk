@@ -508,18 +508,18 @@ public class RenderPipeline {
     public void addDebugInfo(List<String> info) {
         if (Nvidium.config.statistics_level != StatisticsLoggingLevel.NONE) {
             StringBuilder builder = new StringBuilder();
-            builder.append("Statistics: \n");
+            builder.append("Statistics: ");
             if (Nvidium.config.statistics_level.ordinal() >=  StatisticsLoggingLevel.FRUSTUM.ordinal()) {
-                builder.append("Frustum: ").append(stats.frustumCount).append("\n");
+                builder.append("F: ").append(stats.frustumCount);
             }
             if (Nvidium.config.statistics_level.ordinal() >=  StatisticsLoggingLevel.REGIONS.ordinal()) {
-                builder.append("Regions: ").append(stats.regionCount).append("\n");
+                builder.append(", R: ").append(stats.regionCount);
             }
             if (Nvidium.config.statistics_level.ordinal() >=  StatisticsLoggingLevel.SECTIONS.ordinal()) {
-                builder.append("Sections: ").append(stats.sectionCount).append("\n");
+                builder.append(", S: ").append(stats.sectionCount);
             }
             if (Nvidium.config.statistics_level.ordinal() >=  StatisticsLoggingLevel.QUADS.ordinal()) {
-                builder.append("Quads: ").append(stats.quadCount).append("\n");
+                builder.append(", Q: ").append(stats.quadCount);
             }
             info.addAll(List.of(builder.toString().split("\n")));
         }
