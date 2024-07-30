@@ -45,10 +45,7 @@ public class PrimaryTerrainRasterizer extends Phase {
         int blockId = MinecraftClient.getInstance().getTextureManager().getTexture(Identifier.of("minecraft", "textures/atlas/blocks.png")).getGlId();
         int lightId = ((LightMapAccessor)MinecraftClient.getInstance().gameRenderer.getLightmapTextureManager()).getTexture().getGlId();
 
-        //GL45C.glBindTextureUnit(0, blockId);
         GL45C.glBindSampler(0, blockSampler);
-
-        //GL45C.glBindTextureUnit(1, lightId);
         GL45C.glBindSampler(1, lightSampler);
         setTexture(blockId, 0);
         setTexture(lightId, 1);
