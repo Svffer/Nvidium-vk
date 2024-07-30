@@ -81,7 +81,7 @@ public class NvidiumWorldRenderer {
     public void renderFrame(Viewport viewport, ChunkRenderMatrices matrices, double x, double y, double z) {
         renderPipeline.renderFrame(viewport, matrices, x, y, z);
 
-        while (sectionManager.terrainAreana.getUsedMB() > (max_geometry_memory - 75)) {
+        while (sectionManager.terrainAreana.getUsedMB() > (max_geometry_memory - 100)) {
             renderPipeline.removeARegion();
         }
 
@@ -171,5 +171,13 @@ public class NvidiumWorldRenderer {
 
     public void setOrigin(int id, int x, int y, int z) {
         this.renderPipeline.setOrigin(id, x, y, z);
+    }
+
+    public int getAsyncBfsVisibilityCount() {
+        if (this.asyncChunkTracker != null) {
+            return this.asyncChunkTracker.getLastVisibilityCount();
+        } else {
+            return -1;
+        }
     }
 }
