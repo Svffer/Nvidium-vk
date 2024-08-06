@@ -30,12 +30,13 @@ layout(binding = 0) uniform sampler2D tex_diffuse;
 //layout (depth_greater) out float gl_FragDepth;
 
 void main() {
-    //uint uid = gl_PrimitiveID*132471+123571;
-    //colour = vec4(float((uid>>0)&7)/7, float((uid>>3)&7)/7, float((uid>>6)&7)/7, 1.0);
-    //colour = vec4(1.0,1.0,0,1);
+    /*
+    uint uid = gl_PrimitiveID*132471+123571;
+    colour = vec4(float((uid>>0)&7)/7, float((uid>>3)&7)/7, float((uid>>6)&7)/7, 1.0);
+    */
+
     colour = texture(tex_diffuse, uv, float(prim_in.lodBias) * (1.0 / 16.0));
     if (colour.a < float(prim_in.alphaCutoff) * (1.0 / 255.0)) discard;
     colour.xyz *= tint;
     colour.xyz += addin;
-    //colour = vec4(1.0,(uv_bias.z/-8.1f)+0.001f,0,1);
 }

@@ -76,6 +76,8 @@ layout(std140, binding=0) uniform SceneData {
 
     uint32_t *statistics_buffer;
 
+    vec2 screenSize;
+
     float fogStart;
     float fogEnd;
     bool isCylindricalFog;

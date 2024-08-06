@@ -17,6 +17,7 @@ import me.cortex.nvidium.util.TickableManager;
 import me.cortex.nvidium.util.UploadingBufferStream;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices;
 import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import org.joml.*;
 import org.lwjgl.opengl.GL11C;
@@ -183,6 +184,9 @@ public class RenderPipeline {
         //Clear the first gl error, not our fault
         //glGetError();
 
+        int screenWidth = MinecraftClient.getInstance().getWindow().getFramebufferWidth();
+        int screenHeight = MinecraftClient.getInstance().getWindow().getFramebufferHeight();
+
         int visibleRegions = 0;
 
         long queryAddr = 0;
@@ -281,6 +285,11 @@ public class RenderPipeline {
             addr += 8;
             MemoryUtil.memPutLong(addr, statisticsBuffer == null?0:statisticsBuffer.getDeviceAddress());//Logging buffer
             addr += 8;
+            //Convert it into the expected size values and floats
+            MemoryUtil.memPutFloat(addr, ((float)screenWidth)/2);
+            addr += 4;
+            MemoryUtil.memPutFloat(addr, ((float)screenHeight)/2);
+            addr += 4;
             MemoryUtil.memPutFloat(addr, RenderSystem.getShaderFogStart());//FogStart
             addr += 4;
             MemoryUtil.memPutFloat(addr, RenderSystem.getShaderFogEnd());//FogEnd
@@ -448,7 +457,7 @@ public class RenderPipeline {
             glEnable(GL_DEPTH_TEST);
             RenderSystem.enableBlend();
             RenderSystem.blendFuncSeparate(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA);
-            translucencyTerrainRasterizer.raster(prevRegionCount, translucencyCommandBuffer.getDeviceAddress());
+            //translucencyTerrainRasterizer.raster(prevRegionCount, translucencyCommandBuffer.getDeviceAddress());
             RenderSystem.disableBlend();
             RenderSystem.defaultBlendFunc();
             glDisable(GL_DEPTH_TEST);
