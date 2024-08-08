@@ -27,11 +27,6 @@ layout(location=1) out Interpolants {
     f16vec3 addin;
 } OUT[];
 
-layout(location=5) perprimitiveNV out PerPrimData {
-    int8_t lodBias;
-    uint8_t alphaCutoff;
-} per_prim_out[];
-
 taskNV in Task {
     vec3 origin;
     uint baseOffset;
@@ -83,52 +78,6 @@ vec4 sampleLight(vec2 uv) {
 }
 
 
-void emitQuadIndicies() {
-    uint primBase = gl_LocalInvocationID.x * 6;
-    uint vertexBase = gl_LocalInvocationID.x<<2;
-    gl_PrimitiveIndicesNV[primBase+0] = vertexBase+0;
-    gl_PrimitiveIndicesNV[primBase+1] = vertexBase+1;
-    gl_PrimitiveIndicesNV[primBase+2] = vertexBase+2;
-    gl_PrimitiveIndicesNV[primBase+3] = vertexBase+2;
-    gl_PrimitiveIndicesNV[primBase+4] = vertexBase+3;
-    gl_PrimitiveIndicesNV[primBase+5] = vertexBase+0;
-}
-
-Vertex emitVertex(uint vertexBaseId, uint innerId) {
-    Vertex V = terrainData[vertexBaseId + innerId];
-    uint outId = (gl_LocalInvocationID.x<<2)+innerId;
-
-    vec3 pos = decodeVertexPosition(V)+origin;
-    gl_MeshVerticesNV[outId].gl_Position = MVP*(transformMat * vec4(pos,1.0));
-
-    //TODO: make this shared state between all the vertices?
-    float mippingBias = decodeVertexMippingBias(V);
-    float alphaCutoff = decodeVertexAlphaCutoff(V);
-
-    OUT[outId].uv = f16vec2(decodeVertexUV(V));
-
-    vec4 tint = decodeVertexColour(V);
-    tint *= sampleLight(decodeLightUV(V));
-    tint *= tint.w;
-
-    vec3 tintO;
-    vec3 addiO;
-    computeFog(isCylindricalFog, pos+subchunkOffset.xyz, tint, fogColour, fogStart, fogEnd, tintO, addiO);
-    OUT[outId].tint = f16vec3(tintO);
-    OUT[outId].addin = f16vec3(addiO);
-
-    return V;
-}
-
-void emitPerPrimativeData(Vertex V) {
-    int8_t lodBias = int8_t(clamp(decodeVertexMippingBias(V) * 16, -128, 127));
-    uint8_t alphaCutoff = uint8_t(decodeVertexAlphaCutoff(V) * 255);
-    per_prim_out[gl_LocalInvocationID.x<<1].lodBias = lodBias;
-    per_prim_out[(gl_LocalInvocationID.x<<1)|1].lodBias = lodBias;
-    per_prim_out[gl_LocalInvocationID.x<<1].alphaCutoff = alphaCutoff;
-    per_prim_out[(gl_LocalInvocationID.x<<1)|1].alphaCutoff = alphaCutoff;
-}
-
 vec4 transformVertex(Vertex V) {
     vec3 pos = decodeVertexPosition(V)+origin;
     return MVP*(transformMat * vec4(pos,1.0));
@@ -148,10 +97,6 @@ vec4 pV3;
 void putVertex(uint id, Vertex V) {
     //TODO: keep pos around instead of retransfroming it here and in transformVertex
     vec3 pos = decodeVertexPosition(V)+origin;
-
-    float mippingBias = decodeVertexMippingBias(V);
-    float alphaCutoff = decodeVertexAlphaCutoff(V);
-
     OUT[id].uv = f16vec2(decodeVertexUV(V));
 
     vec4 tint = decodeVertexColour(V);
@@ -241,8 +186,9 @@ void main() {
     putVertex(vertIndex, V2); gl_MeshVerticesNV[vertIndex++].gl_Position = pV2;
 
 
-    int8_t lodBias = int8_t(clamp(decodeVertexMippingBias(V0) * 16, -128, 127));
-    uint8_t alphaCutoff = uint8_t(decodeVertexAlphaCutoff(V0) * 255);
+    uint lodBias = uint(clamp(decodeVertexMippingBias(V0) * 16, -128, 127)+128);
+    uint alphaCutoff = uint(decodeVertexAlphaCutoff(V0) * 255);
+    int primData = int(lodBias|(alphaCutoff<<8));
 
     if (t0draw) {
         putVertex(vertIndex, V1); gl_MeshVerticesNV[vertIndex].gl_Position = pV1;
@@ -252,10 +198,8 @@ void main() {
         gl_PrimitiveIndicesNV[indexIndex++] = vertBase+1;
         vertIndex++;
 
-        uint primId = triIndex++;
-        per_prim_out[primId].lodBias = lodBias;
-        per_prim_out[primId].alphaCutoff = alphaCutoff;
         //gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = int(id<<1);
+        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData;
     }
 
     if (t1draw) {
@@ -266,10 +210,8 @@ void main() {
         gl_PrimitiveIndicesNV[indexIndex++] = vertBase+0;
         vertIndex++;
 
-        uint primId = triIndex++;
-        per_prim_out[primId].lodBias = lodBias;
-        per_prim_out[primId].alphaCutoff = alphaCutoff;
         //gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = int((id<<1)+1);
+        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData;
     }
 
 
