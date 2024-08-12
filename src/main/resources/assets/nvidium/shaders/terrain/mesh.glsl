@@ -95,9 +95,10 @@ vec4 pV3;
 
 
 void putVertex(uint id, Vertex V) {
+    OUT[id].uv = f16vec2(decodeVertexUV(V));
+
     //TODO: keep pos around instead of retransfroming it here and in transformVertex
     vec3 pos = decodeVertexPosition(V)+origin;
-    OUT[id].uv = f16vec2(decodeVertexUV(V));
 
     vec4 tint = decodeVertexColour(V);
     tint *= sampleLight(decodeLightUV(V));

@@ -21,7 +21,9 @@ public class Nvidium {
 
     static {
         ModContainer mod = (ModContainer) FabricLoader.getInstance().getModContainer("nvidium").orElseThrow(NullPointerException::new);
-        MOD_VERSION = mod.getMetadata().getVersion().getFriendlyString();
+        var version = mod.getMetadata().getVersion().getFriendlyString();
+        var commit = mod.getMetadata().getCustomValue("commit").getAsString();
+        MOD_VERSION = version+"-"+commit;
     }
 
     public static void checkSystemIsCapable() {
