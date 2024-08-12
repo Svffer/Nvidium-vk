@@ -13,6 +13,7 @@
 #extension GL_KHR_shader_subgroup_vote : require
 
 #import <nvidium:occlusion/scene.glsl>
+#import <nvidium:terrain/fog.glsl>
 #import <nvidium:terrain/vertex_format.glsl>
 
 
@@ -21,6 +22,9 @@ layout(local_size_x = 16) in;
 layout(triangles, max_vertices=64, max_primitives=32) out;
 
 layout(location=1) out Interpolants {
+#ifdef RENDER_FOG
+    float16_t fogLerp;
+#endif
     f16vec2 uv;
 } OUT[];
 
@@ -84,6 +88,12 @@ vec4 pV3;
 
 
 void putVertex(uint id, Vertex V) {
+    #ifdef RENDER_FOG
+    vec3 pos = decodeVertexPosition(V)+origin;
+    vec3 exactPos = pos+subchunkOffset.xyz;
+    float fogLerp = clamp(computeFogLerp(exactPos, isCylindricalFog, fogStart, fogEnd) * fogColour.a, 0, 1);
+    OUT[id].fogLerp = float16_t(fogLerp);
+    #endif
     OUT[id].uv = f16vec2(decodeVertexUV(V));
 }
 

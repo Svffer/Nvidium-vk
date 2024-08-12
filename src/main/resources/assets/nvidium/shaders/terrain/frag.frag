@@ -12,7 +12,6 @@
 
 
 #import <nvidium:occlusion/scene.glsl>
-#import <nvidium:terrain/fog.glsl>
 #import <nvidium:terrain/vertex_format.glsl>
 
 
@@ -20,8 +19,11 @@
 
 layout(location = 0) out vec4 colour;
 layout(location = 1) in Interpolants {
+    #ifdef RENDER_FOG
+    float16_t fogLerp;
+    #endif
     f16vec2 uv;
-    #ifdef TRANSLUCENT_PASS
+#ifdef TRANSLUCENT_PASS
     f16vec3 v_colour;
     #endif
 };
@@ -52,12 +54,17 @@ void computeOutputColour(inout vec3 colour, uint quadId, bool triangle0) {
 }
 
 #ifdef RENDER_FOG
+//2 ways to do it, either use an interpolation, or screenspace reversal, screenspace reversal is better when many many vertices
+// however interpolation increases ISBE
 void applyFog(inout vec3 colour) {
+    /*
     //Reverse the transformation and compute the original position
     vec4 clip = (MVPInv * vec4((gl_FragCoord.xy/screenSize)-1, gl_FragCoord.z*2-1, 1));
     vec3 pos = clip.xyz/clip.w;
-    float fogLerp = computeFogLerp(pos, isCylindricalFog, fogStart, fogEnd) * fogColour.a;
-    colour = mix(colour, fogColour.rgb, clamp(fogLerp,0,1));
+    float fogLerp = clamp(computeFogLerp(pos, isCylindricalFog, fogStart, fogEnd) * fogColour.a, 0,1);
+    colour = mix(colour, fogColour.rgb, fogLerp);
+    */
+    colour = mix(colour, fogColour.rgb, fogLerp);
 }
 #endif
 
@@ -65,10 +72,10 @@ void applyFog(inout vec3 colour) {
 layout(binding = 0) uniform sampler2D tex_diffuse;
 void main() {
     #ifdef TRANSLUCENT_PASS
-    colour = texture(tex_diffuse, uv, 0);
+    colour = texture(tex_diffuse, uv.xy, 0);
     colour.rgb *= v_colour;
     #else
-    colour = texture(tex_diffuse, uv, ((gl_PrimitiveID>>2)&1)*-8.0f);
+    colour = texture(tex_diffuse, uv.xy, ((gl_PrimitiveID>>2)&1)*-8.0f);
     if (colour.a < getVertexAlphaCutoff(uint(gl_PrimitiveID&3))) discard;
     colour.a = 1;
     computeOutputColour(colour.rgb, uint(gl_PrimitiveID)>>4, uint((gl_PrimitiveID>>3)&1)==0);

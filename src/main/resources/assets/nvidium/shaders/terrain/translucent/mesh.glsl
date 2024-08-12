@@ -12,6 +12,7 @@
 #extension GL_KHR_shader_subgroup_vote : require
 
 #import <nvidium:occlusion/scene.glsl>
+#import <nvidium:terrain/fog.glsl>
 #import <nvidium:terrain/vertex_format.glsl>
 
 
@@ -33,8 +34,11 @@ taskNV in Task {
 };
 
 layout(location=1) out Interpolants {
+#ifdef RENDER_FOG
+    float16_t fogLerp;
+#endif
     f16vec2 uv;
-    f16vec3 v_colour;
+f16vec3 v_colour;
 } OUT[];
 
 layout(binding = 1) uniform sampler2D tex_light;
@@ -60,6 +64,14 @@ void emitVertex(uint vertexBaseId, uint innerId) {
     uint outId = (gl_LocalInvocationID.x<<2)+innerId;
     vec3 pos = decodeVertexPosition(V)+originAndBaseData.xyz;
     gl_MeshVerticesNV[outId].gl_Position = MVP*vec4(pos,1.0);
+
+
+    vec3 exactPos = pos+subchunkOffset.xyz;
+
+    #ifdef RENDER_FOG
+    float fogLerp = clamp(computeFogLerp(exactPos, isCylindricalFog, fogStart, fogEnd) * fogColour.a, 0, 1);
+    OUT[outId].fogLerp = float16_t(fogLerp);
+    #endif
     OUT[outId].uv = f16vec2(decodeVertexUV(V));
 
     vec4 tint = decodeVertexColour(V);
@@ -68,9 +80,9 @@ void emitVertex(uint vertexBaseId, uint innerId) {
     OUT[outId].v_colour = f16vec3(tint.rgb);
 
     #ifdef TRANSLUCENCY_SORTING_QUADS
-    vec3 exactPos = pos+subchunkOffset.xyz;
     depthPos += exactPos;
     #endif
+
 }
 
 #ifdef TRANSLUCENCY_SORTING_QUADS
