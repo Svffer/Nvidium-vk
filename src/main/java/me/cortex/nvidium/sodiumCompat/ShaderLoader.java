@@ -29,6 +29,10 @@ public class ShaderLoader {
             builder.add("TRANSLUCENCY_SORTING_"+TranslucencySortingLevel.values()[i].name());
         }
 
+        if (Nvidium.config.render_fog) {
+            builder.add("RENDER_FOG");
+        }
+
         builder.add("TEXTURE_MAX_SCALE", String.valueOf(NvidiumCompactChunkVertex.TEXTURE_MAX_VALUE));
         constantBuilder.accept(builder);
 

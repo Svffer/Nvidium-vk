@@ -60,7 +60,7 @@ public class RenderPipeline {
     private SortRegionSectionPhase regionSectionSorter;
 
     private final IDeviceMappedBuffer sceneUniform;
-    private static final int SCENE_SIZE = (int) alignUp(4*4*4+4*4+4*4+4+4*4+4*4+8*8+3*4+3+4+8+8, 2);
+    private static final int SCENE_SIZE = (int) alignUp(4*4*4+4*4+4*4+4+4*4+4*4+8*8+3*4+3+4+8+8+(4*4*4), 2);
 
     private final IDeviceMappedBuffer regionVisibility;
     private final IDeviceMappedBuffer sectionVisibility;
@@ -90,6 +90,7 @@ public class RenderPipeline {
         this.uploadStream = uploadStream;
         this.downloadStream = downloadStream;
         this.sectionManager = sectionManager;
+        this.compiledForFog = Nvidium.config.render_fog;
 
         terrainRasterizer = new PrimaryTerrainRasterizer();
         regionRasterizer = new RegionRasterizer();
@@ -154,6 +155,7 @@ public class RenderPipeline {
 
     private int prevRegionCount;
     private int frameId;
+    private boolean compiledForFog = false;
 
     //TODO FIXME: regions that where in frustum but are now out of frustum must have the visibility data cleared
     // this is due to funny issue of pain where the section was "visible" last frame cause it didnt get ticked
@@ -246,6 +248,13 @@ public class RenderPipeline {
                     .translate(delta)//Translate the subchunk position
                     .getToAddress(addr);
             addr += 4*4*4;
+            if (this.compiledForFog) {
+                new Matrix4f(crm.projection())
+                        .mul(crm.modelView())
+                        .invert()
+                        .getToAddress(addr);
+                addr += 4*4*4;
+            }
             new Vector4i(chunkPos.x, chunkPos.y, chunkPos.z, 0).getToAddress(addr);//Chunk the camera is in
             addr += 16;
             new Vector4f(delta,0).getToAddress(addr);//Subchunk offset (note, delta is already negated)
@@ -524,6 +533,7 @@ public class RenderPipeline {
     }
 
     public void reloadShaders() {
+        this.compiledForFog = Nvidium.config.render_fog;
         terrainRasterizer.delete();
         regionRasterizer.delete();
         sectionRasterizer.delete();

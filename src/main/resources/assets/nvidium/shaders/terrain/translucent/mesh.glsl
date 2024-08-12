@@ -12,7 +12,6 @@
 #extension GL_KHR_shader_subgroup_vote : require
 
 #import <nvidium:occlusion/scene.glsl>
-#import <nvidium:terrain/fog.glsl>
 #import <nvidium:terrain/vertex_format.glsl>
 
 

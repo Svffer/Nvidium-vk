@@ -41,22 +41,7 @@ vec3 computeMultiplier(Vertex V) {
     return tint.xyz;
 }
 
-vec3 getOutputColour(vec3 colour, uint quadId, bool triangle0) {
-
-    /*
-    //TODO: keep pos around instead of retransfroming it here and in transformVertex
-    vec3 pos = decodeVertexPosition(V)+origin;
-
-
-    OUT[id].tint = f16vec3(tint.xyz);
-
-    vec3 tintO;
-    vec3 addiO;
-    computeFog(isCylindricalFog, pos+subchunkOffset.xyz, tint, fogColour, fogStart, fogEnd, tintO, addiO);
-    OUT[id].tint = f16vec3(tintO);
-    OUT[id].addin = f16vec3(addiO);
-    */
-
+void computeOutputColour(inout vec3 colour, uint quadId, bool triangle0) {
     uvec3 TRI_INDICIES = triangle0?uvec3(0,1,2):uvec3(2,3,0);
     Vertex V0 = terrainData[(quadId<<2)+TRI_INDICIES.x];
     Vertex Vp = terrainData[(quadId<<2)+TRI_INDICIES.y];
@@ -64,9 +49,17 @@ vec3 getOutputColour(vec3 colour, uint quadId, bool triangle0) {
 
     vec3 multiplier = gl_BaryCoordNV.x*computeMultiplier(V0) + gl_BaryCoordNV.y*computeMultiplier(Vp) + gl_BaryCoordNV.z*computeMultiplier(V2);
     colour *= multiplier;
-
-    return colour;
 }
+
+#ifdef RENDER_FOG
+void applyFog(inout vec3 colour) {
+    //Reverse the transformation and compute the original position
+    vec4 clip = (MVPInv * vec4((gl_FragCoord.xy/screenSize)-1, gl_FragCoord.z*2-1, 1));
+    vec3 pos = clip.xyz/clip.w;
+    float fogLerp = computeFogLerp(pos, isCylindricalFog, fogStart, fogEnd) * fogColour.a;
+    colour = mix(colour, fogColour.rgb, clamp(fogLerp,0,1));
+}
+#endif
 
 
 layout(binding = 0) uniform sampler2D tex_diffuse;
@@ -78,6 +71,10 @@ void main() {
     colour = texture(tex_diffuse, uv, ((gl_PrimitiveID>>2)&1)*-8.0f);
     if (colour.a < getVertexAlphaCutoff(uint(gl_PrimitiveID&3))) discard;
     colour.a = 1;
-    colour.rgb = getOutputColour(colour.rgb, uint(gl_PrimitiveID)>>4, uint((gl_PrimitiveID>>3)&1)==0);
+    computeOutputColour(colour.rgb, uint(gl_PrimitiveID)>>4, uint((gl_PrimitiveID>>3)&1)==0);
+    #endif
+
+    #ifdef RENDER_FOG
+    applyFog(colour.rgb);
     #endif
 }

@@ -94,7 +94,6 @@ public class ConfigGuiBuilder {
                         .setBinding((opts, value) -> opts.render_fog = value, opts -> opts.render_fog)
                         .setEnabled(Nvidium.IS_ENABLED)
                         .setImpact(OptionImpact.MEDIUM)
-                        //Technically, only need to reload when going from NONE->SECTIONS
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
                         .build()
                 ).add(OptionImpl.createBuilder(TranslucencySortingLevel.class, store)
