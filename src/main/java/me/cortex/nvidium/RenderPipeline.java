@@ -40,8 +40,6 @@ import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_AD
 import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
 import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.*;
 
-
-//TODO: extract out sectionManager, uploadStream, downloadStream and other funky things to an auxiliary parent NvidiumWorldRenderer class
 public class RenderPipeline {
     public static final int GL_DRAW_INDIRECT_UNIFIED_NV = 0x8F40;
     public static final int GL_DRAW_INDIRECT_ADDRESS_NV = 0x8F41;
@@ -133,8 +131,6 @@ public class RenderPipeline {
 
     }
 
-    //TODO: FIXME: optimize this so that multiple uploads just upload a single time per frame!!!
-    // THIS IS CRITICAL
     public void setTransformation(int id, Matrix4fc transform) {
         if (id < 0 || id >= RegionManager.MAX_TRANSFORMATION_COUNT) {
             throw new IllegalArgumentException("Id out of bounds: " + id);
@@ -143,8 +139,6 @@ public class RenderPipeline {
         transform.getToAddress(ptr);
     }
 
-    //TODO: FIXME: optimize this so that multiple uploads just upload a single time per frame!!!
-    // THIS IS CRITICAL
     public void setOrigin(int id, int x, int y, int z) {
         if (id < 0 || id >= RegionManager.MAX_TRANSFORMATION_COUNT) {
             throw new IllegalArgumentException("Id out of bounds: " + id);
@@ -161,7 +155,7 @@ public class RenderPipeline {
     private int prevRegionCount;
     private int frameId;
 
-    //ISSUE TODO: regions that where in frustum but are now out of frustum must have the visibility data cleared
+    //TODO FIXME: regions that where in frustum but are now out of frustum must have the visibility data cleared
     // this is due to funny issue of pain where the section was "visible" last frame cause it didnt get ticked
     public void renderFrame(Viewport frustum, ChunkRenderMatrices crm, double px, double py, double pz) {//NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
 
@@ -203,8 +197,6 @@ public class RenderPipeline {
                     removeRegion(i);
                     continue;
                 }
-                //TODO: fog culling/region removal cause with bobby the removal distance is huge and people run out of vram very fast
-
 
                 if (rm.isRegionVisible(frustum, i)) {
                     //Note, its sorted like this because of overdraw, also the translucency command buffer is written to
@@ -246,16 +238,15 @@ public class RenderPipeline {
         }
 
         {
-            //TODO: maybe segment the uniform buffer into 2 parts, always updating and static where static holds pointers
             Vector3f delta = new Vector3f((float) (px-(chunkPos.x<<4)), (float) (py-(chunkPos.y<<4)), (float) (pz-(chunkPos.z<<4)));
             delta.negate();
             long addr = uploadStream.upload(sceneUniform, 0, SCENE_SIZE);
-            var mvp =new Matrix4f(crm.projection())
+            new Matrix4f(crm.projection())
                     .mul(crm.modelView())
                     .translate(delta)//Translate the subchunk position
                     .getToAddress(addr);
             addr += 4*4*4;
-            new Vector4i(chunkPos.x, chunkPos.y, chunkPos.z, 0).getToAddress(addr);//Chunk the camera is in//TODO: THIS
+            new Vector4i(chunkPos.x, chunkPos.y, chunkPos.z, 0).getToAddress(addr);//Chunk the camera is in
             addr += 16;
             new Vector4f(delta,0).getToAddress(addr);//Subchunk offset (note, delta is already negated)
             addr += 16;
@@ -426,13 +417,11 @@ public class RenderPipeline {
         this.regionsToSort.add(regionId);
     }
 
-    //TODO: refactor to different location
     private void removeRegion(int id) {
         sectionManager.removeRegionById(id);
         regionVisibilityTracking.resetRegion(id);
     }
 
-    //TODO: refactor out of the render pipeline along with regionVisibilityTracking and removeRegion and statistics
     public void removeARegion() {
         removeRegion(regionVisibilityTracking.findMostLikelyLeastSeenRegion(sectionManager.getRegionManager().maxRegionIndex()));
     }

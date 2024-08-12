@@ -58,7 +58,6 @@ public class NvidiumWorldRenderer {
         this.asyncChunkTracker = asyncChunkTracker;
     }
 
-    //TODO: cleanup this spagetti
     public void enqueueRegionSort(int regionId) {
         this.renderPipeline.enqueueRegionSort(regionId);
     }
