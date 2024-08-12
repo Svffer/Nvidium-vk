@@ -68,9 +68,14 @@ vec4 getOutputColour(vec4 colour, uint quadId, bool triangle0) {
 
 layout(binding = 0) uniform sampler2D tex_diffuse;
 void main() {
+    #ifdef TRANSLUCENT_PASS
+    colour = texture(tex_diffuse, uv, 0);
+    #else
     colour = texture(tex_diffuse, uv, ((gl_PrimitiveID>>2)&1)*-8.0f);
     if (colour.a < getVertexAlphaCutoff(uint(gl_PrimitiveID&3))) discard;
-
+    #endif
     colour = getOutputColour(colour, uint(gl_PrimitiveID)>>4, uint((gl_PrimitiveID>>3)&1)==0);
+    #ifndef TRANSLUCENT_PASS
     colour.a = 1;
+    #endif
 }
