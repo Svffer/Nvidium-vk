@@ -11,6 +11,7 @@ def gitCommitHash = { ->
     }
     return stdout.toString().trim()
 }
+def buildtime = System.currentTimeSeconds()
 
 version = project.mod_version
 group = project.maven_group
@@ -30,13 +31,12 @@ loom {
 }
 
 
-
 processResources {
-    inputs.properties("version": project.version, "commit": gitCommitHash)
+    inputs.properties("version": project.version, "commit": gitCommitHash, "buildtime":buildtime)
 
     archivesBaseName = "nvidium"
     filesMatching("fabric.mod.json") {
-        expand "commit": gitCommitHash, "version": project.version
+        expand "commit": gitCommitHash, "version": project.version, "buildtime": buildtime
     }
 }
 

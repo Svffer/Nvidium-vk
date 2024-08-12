@@ -3,7 +3,8 @@
   "id": "nvidium",
   "version": "${version}",
   "custom": {
-    "commit": "${commit}"
+    "commit": "${commit}",
+    "buildtime": "${buildtime}"
   },
   "name": "Nvidium",
   "description": "Replacement rendering engine for sodium",

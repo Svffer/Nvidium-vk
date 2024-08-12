@@ -21,6 +21,9 @@
 layout(location = 0) out vec4 colour;
 layout(location = 1) in Interpolants {
     f16vec2 uv;
+    #ifdef TRANSLUCENT_PASS
+    f16vec3 v_colour;
+    #endif
 };
 
 
@@ -38,7 +41,7 @@ vec3 computeMultiplier(Vertex V) {
     return tint.xyz;
 }
 
-vec4 getOutputColour(vec4 colour, uint quadId, bool triangle0) {
+vec3 getOutputColour(vec3 colour, uint quadId, bool triangle0) {
 
     /*
     //TODO: keep pos around instead of retransfroming it here and in transformVertex
@@ -60,7 +63,7 @@ vec4 getOutputColour(vec4 colour, uint quadId, bool triangle0) {
     Vertex V2 = terrainData[(quadId<<2)+TRI_INDICIES.z];
 
     vec3 multiplier = gl_BaryCoordNV.x*computeMultiplier(V0) + gl_BaryCoordNV.y*computeMultiplier(Vp) + gl_BaryCoordNV.z*computeMultiplier(V2);
-    colour.rgb *= multiplier;
+    colour *= multiplier;
 
     return colour;
 }
@@ -70,12 +73,11 @@ layout(binding = 0) uniform sampler2D tex_diffuse;
 void main() {
     #ifdef TRANSLUCENT_PASS
     colour = texture(tex_diffuse, uv, 0);
+    colour.rgb *= v_colour;
     #else
     colour = texture(tex_diffuse, uv, ((gl_PrimitiveID>>2)&1)*-8.0f);
     if (colour.a < getVertexAlphaCutoff(uint(gl_PrimitiveID&3))) discard;
-    #endif
-    colour = getOutputColour(colour, uint(gl_PrimitiveID)>>4, uint((gl_PrimitiveID>>3)&1)==0);
-    #ifndef TRANSLUCENT_PASS
     colour.a = 1;
+    colour.rgb = getOutputColour(colour.rgb, uint(gl_PrimitiveID)>>4, uint((gl_PrimitiveID>>3)&1)==0);
     #endif
 }

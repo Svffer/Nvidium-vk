@@ -35,7 +35,15 @@ taskNV in Task {
 
 layout(location=1) out Interpolants {
     f16vec2 uv;
+    f16vec3 v_colour;
 } OUT[];
+
+layout(binding = 1) uniform sampler2D tex_light;
+
+vec4 sampleLight(vec2 uv) {
+    //Its divided by 16 to match sodium/vanilla (it can never be 1 which is funny)
+    return vec4(texture(tex_light, uv).rgb, 1);
+}
 
 void emitQuadIndicies() {
     uint primBase = gl_LocalInvocationID.x * 6;
@@ -54,6 +62,11 @@ void emitVertex(uint vertexBaseId, uint innerId) {
     vec3 pos = decodeVertexPosition(V)+originAndBaseData.xyz;
     gl_MeshVerticesNV[outId].gl_Position = MVP*vec4(pos,1.0);
     OUT[outId].uv = f16vec2(decodeVertexUV(V));
+
+    vec4 tint = decodeVertexColour(V);
+    tint *= sampleLight(decodeLightUV(V));
+    tint *= tint.w;
+    OUT[outId].v_colour = f16vec3(tint.rgb);
 
     #ifdef TRANSLUCENCY_SORTING_QUADS
     vec3 exactPos = pos+subchunkOffset.xyz;
