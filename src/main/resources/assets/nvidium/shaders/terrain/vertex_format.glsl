@@ -22,12 +22,20 @@ vec2 decodeVertexUV(Vertex v) {
     return vec2(v.w&0xffff,v.w>>16)*(1f/(TEXTURE_MAX_SCALE));
 }
 
-float decodeVertexMippingBias(Vertex v) {
-    return ((v.y>>16)&4)==0?-8:0;
+bool hasMipping(Vertex v) {
+    return ((v.y>>16)&4)!=0;
 }
 
 float decodeVertexAlphaCutoff(Vertex v) {
     return (float[](0.0f, 0.1f,0.5f))[((v.y>>16)&int16_t(3))];
+}
+
+uint rawVertexAlphaCutoff(Vertex v) {
+    return uint((v.y>>16)&int16_t(3));
+}
+
+float getVertexAlphaCutoff(uint v) {
+    return (float[](0.0f, 0.1f,0.5f))[v];
 }
 
 vec2 decodeLightUV(Vertex v) {

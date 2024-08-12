@@ -23,8 +23,6 @@ layout(triangles, max_vertices=64, max_primitives=32) out;
 
 layout(location=1) out Interpolants {
     f16vec2 uv;
-    f16vec3 tint;
-    //f16vec3 addin;
 } OUT[];
 
 taskNV in Task {
@@ -70,14 +68,6 @@ uint getOffset() {
 
 mat4 transformMat;
 
-layout(binding = 1) uniform sampler2D tex_light;
-
-vec4 sampleLight(vec2 uv) {
-    //Its divided by 16 to match sodium/vanilla (it can never be 1 which is funny)
-    return vec4(texture(tex_light, uv).rgb, 1);
-}
-
-
 vec4 transformVertex(Vertex V) {
     vec3 pos = decodeVertexPosition(V)+origin;
     return MVP*(transformMat * vec4(pos,1.0));
@@ -96,21 +86,6 @@ vec4 pV3;
 
 void putVertex(uint id, Vertex V) {
     OUT[id].uv = f16vec2(decodeVertexUV(V));
-
-    //TODO: keep pos around instead of retransfroming it here and in transformVertex
-    vec3 pos = decodeVertexPosition(V)+origin;
-
-    vec4 tint = decodeVertexColour(V);
-    tint *= sampleLight(decodeLightUV(V));
-    tint *= tint.w;
-    OUT[id].tint = f16vec3(tint.xyz);
-    /*
-    vec3 tintO;
-    vec3 addiO;
-    computeFog(isCylindricalFog, pos+subchunkOffset.xyz, tint, fogColour, fogStart, fogEnd, tintO, addiO);
-    OUT[id].tint = f16vec3(tintO);
-    OUT[id].addin = f16vec3(addiO);
-    */
 }
 
 
@@ -189,9 +164,9 @@ void main() {
     putVertex(vertIndex, V2); gl_MeshVerticesNV[vertIndex++].gl_Position = pV2;
 
 
-    uint lodBias = uint(clamp(decodeVertexMippingBias(V0) * 16, -128, 127)+128);
-    uint alphaCutoff = uint(decodeVertexAlphaCutoff(V0) * 255);
-    int primData = int(lodBias|(alphaCutoff<<8));
+    uint lodBias = hasMipping(V0)?0:1;
+    uint alphaCutoff = rawVertexAlphaCutoff(V0);
+    int primData = int((lodBias<<2)|alphaCutoff|(id<<4));
 
     if (t0draw) {
         putVertex(vertIndex, V1); gl_MeshVerticesNV[vertIndex].gl_Position = pV1;
@@ -202,7 +177,7 @@ void main() {
         vertIndex++;
 
         //gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = int(id<<1);
-        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData;
+        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData|(0<<3);
     }
 
     if (t1draw) {
@@ -214,7 +189,7 @@ void main() {
         vertIndex++;
 
         //gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = int((id<<1)+1);
-        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData;
+        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData|(1<<3);
     }
 
 

@@ -8,28 +8,69 @@
 
 //#extension GL_NV_conservative_raster_underestimation : enable
 
-//#extension GL_NV_fragment_shader_barycentric : require
+#extension GL_NV_fragment_shader_barycentric : require
+
 
 #import <nvidium:occlusion/scene.glsl>
+#import <nvidium:terrain/fog.glsl>
+#import <nvidium:terrain/vertex_format.glsl>
+
+
+
 
 layout(location = 0) out vec4 colour;
 layout(location = 1) in Interpolants {
     f16vec2 uv;
-    f16vec3 tint;
 };
 
 
-layout(binding = 0) uniform sampler2D tex_diffuse;
+layout(binding = 1) uniform sampler2D tex_light;
 
-//layout (depth_greater) out float gl_FragDepth;
+vec4 sampleLight(vec2 uv) {
+    //Its divided by 16 to match sodium/vanilla (it can never be 1 which is funny)
+    return vec4(texture(tex_light, uv).rgb, 1);
+}
 
-void main() {
+vec3 computeMultiplier(Vertex V) {
+    vec4 tint = decodeVertexColour(V);
+    tint *= sampleLight(decodeLightUV(V));
+    tint *= tint.w;
+    return tint.xyz;
+}
+
+vec4 getOutputColour(vec4 colour, uint quadId, bool triangle0) {
+
     /*
-    uint uid = gl_PrimitiveID*132471+123571;
-    colour = vec4(float((uid>>0)&7)/7, float((uid>>3)&7)/7, float((uid>>6)&7)/7, 1.0);
+    //TODO: keep pos around instead of retransfroming it here and in transformVertex
+    vec3 pos = decodeVertexPosition(V)+origin;
+
+
+    OUT[id].tint = f16vec3(tint.xyz);
+
+    vec3 tintO;
+    vec3 addiO;
+    computeFog(isCylindricalFog, pos+subchunkOffset.xyz, tint, fogColour, fogStart, fogEnd, tintO, addiO);
+    OUT[id].tint = f16vec3(tintO);
+    OUT[id].addin = f16vec3(addiO);
     */
 
-    colour = texture(tex_diffuse, uv, float(int(gl_PrimitiveID&0xFF)-128) * (1.0 / 16.0));
-    if (colour.a < float(int(gl_PrimitiveID>>8)) * (1.0 / 255.0)) discard;
-    colour.xyz *= tint;
+    uvec3 TRI_INDICIES = triangle0?uvec3(0,1,2):uvec3(2,3,0);
+    Vertex V0 = terrainData[(quadId<<2)+TRI_INDICIES.x];
+    Vertex Vp = terrainData[(quadId<<2)+TRI_INDICIES.y];
+    Vertex V2 = terrainData[(quadId<<2)+TRI_INDICIES.z];
+
+    vec3 multiplier = gl_BaryCoordNV.x*computeMultiplier(V0) + gl_BaryCoordNV.y*computeMultiplier(Vp) + gl_BaryCoordNV.z*computeMultiplier(V2);
+    colour.rgb *= multiplier;
+
+    return colour;
+}
+
+
+layout(binding = 0) uniform sampler2D tex_diffuse;
+void main() {
+    colour = texture(tex_diffuse, uv, ((gl_PrimitiveID>>2)&1)*-8.0f);
+    if (colour.a < getVertexAlphaCutoff(uint(gl_PrimitiveID&3))) discard;
+
+    colour = getOutputColour(colour, uint(gl_PrimitiveID)>>4, uint((gl_PrimitiveID>>3)&1)==0);
+    colour.a = 1;
 }
