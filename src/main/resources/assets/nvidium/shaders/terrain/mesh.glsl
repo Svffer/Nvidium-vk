@@ -24,7 +24,7 @@ layout(triangles, max_vertices=64, max_primitives=32) out;
 layout(location=1) out Interpolants {
     f16vec2 uv;
     f16vec3 tint;
-    f16vec3 addin;
+    //f16vec3 addin;
 } OUT[];
 
 taskNV in Task {
@@ -103,12 +103,14 @@ void putVertex(uint id, Vertex V) {
     vec4 tint = decodeVertexColour(V);
     tint *= sampleLight(decodeLightUV(V));
     tint *= tint.w;
-
+    OUT[id].tint = f16vec3(tint.xyz);
+    /*
     vec3 tintO;
     vec3 addiO;
     computeFog(isCylindricalFog, pos+subchunkOffset.xyz, tint, fogColour, fogStart, fogEnd, tintO, addiO);
     OUT[id].tint = f16vec3(tintO);
     OUT[id].addin = f16vec3(addiO);
+    */
 }
 
 

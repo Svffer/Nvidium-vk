@@ -16,7 +16,6 @@ layout(location = 0) out vec4 colour;
 layout(location = 1) in Interpolants {
     f16vec2 uv;
     f16vec3 tint;
-    f16vec3 addin;
 };
 
 
@@ -33,6 +32,4 @@ void main() {
     colour = texture(tex_diffuse, uv, float(int(gl_PrimitiveID&0xFF)-128) * (1.0 / 16.0));
     if (colour.a < float(int(gl_PrimitiveID>>8)) * (1.0 / 255.0)) discard;
     colour.xyz *= tint;
-    colour.xyz += addin;
-
 }
