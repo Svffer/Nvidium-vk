@@ -169,7 +169,7 @@ void main() {
         return;
     }
 
-    barrier();
+    //barrier();
     uint triCnt = uint(t0draw)+uint(t1draw);
     //Do a subgroup prefix sum to compute emission indies and verticies, aswell as a max to compute the total count
     uint triIndex = subgroupExclusiveAdd(triCnt);
