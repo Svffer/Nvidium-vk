@@ -33,11 +33,13 @@ taskNV in Task {
     #endif
 };
 
-#ifdef RENDER_FOG
 layout(location=1) out Interpolants {
-    float fogLerp;
-} OUT[];
+#ifdef RENDER_FOG
+    float16_t fogLerp;
 #endif
+    vec2 uv;
+    vec3 v_colour;
+} OUT[];
 
 layout(binding = 1) uniform sampler2D tex_light;
 
@@ -67,9 +69,15 @@ void emitVertex(uint vertexBaseId, uint innerId) {
     vec3 exactPos = pos+subchunkOffset.xyz;
 
     #ifdef RENDER_FOG
-    OUT[outId].fogLerp = clamp(computeFogLerp(exactPos, isCylindricalFog, fogStart, fogEnd) * fogColour.a, 0, 1);
+    float fogLerp = clamp(computeFogLerp(exactPos, isCylindricalFog, fogStart, fogEnd) * fogColour.a, 0, 1);
+    OUT[outId].fogLerp = float16_t(fogLerp);
     #endif
+    OUT[outId].uv = decodeVertexUV(V);
 
+    vec4 tint = decodeVertexColour(V);
+    tint *= sampleLight(decodeLightUV(V));
+    tint *= tint.w;
+    OUT[outId].v_colour = tint.rgb;
 
     #ifdef TRANSLUCENCY_SORTING_QUADS
     depthPos += exactPos;

@@ -18,9 +18,15 @@
 
 
 layout(location = 0) out vec4 colour;
-#ifdef RENDER_FOG
+#if defined(RENDER_FOG) || defined(TRANSLUCENT_PASS)
 layout(location = 1) in Interpolants {
+    #ifdef RENDER_FOG
     float fogLerp;
+    #endif
+    #ifdef TRANSLUCENT_PASS
+    vec2 uv;
+    vec3 v_colour;
+    #endif
 };
 #endif
 
@@ -73,16 +79,17 @@ void main() {
     Vp = terrainData[(quadId<<2)+TRI_INDICIES.y];
     V2 = terrainData[(quadId<<2)+TRI_INDICIES.z];
 
-    vec2 uv = gl_BaryCoordNV.x*decodeVertexUV(V0) + gl_BaryCoordNV.y*decodeVertexUV(Vp) + gl_BaryCoordNV.z*decodeVertexUV(V2);
 
     #ifdef TRANSLUCENT_PASS
     colour = texture(tex_diffuse, uv, 0);
+    colour.rgb *= v_colour;
     #else
+    vec2 uv = gl_BaryCoordNV.x*decodeVertexUV(V0) + gl_BaryCoordNV.y*decodeVertexUV(Vp) + gl_BaryCoordNV.z*decodeVertexUV(V2);
     colour = texture(tex_diffuse, uv, ((gl_PrimitiveID>>2)&1)*-8.0f);
     if (colour.a < getVertexAlphaCutoff(uint(gl_PrimitiveID&3))) discard;
     colour.a = 1;
-    #endif
     computeOutputColour(colour.rgb);
+    #endif
 
     #ifdef RENDER_FOG
     applyFog(colour.rgb);
