@@ -21,12 +21,11 @@
 layout(local_size_x = 16) in;
 layout(triangles, max_vertices=64, max_primitives=32) out;
 
-layout(location=1) out Interpolants {
 #ifdef RENDER_FOG
-    float16_t fogLerp;
-#endif
-    f16vec2 uv;
+layout(location=1) out Interpolants {
+    float fogLerp;
 } OUT[];
+#endif
 
 taskNV in Task {
     vec3 origin;
@@ -91,10 +90,8 @@ void putVertex(uint id, Vertex V) {
     #ifdef RENDER_FOG
     vec3 pos = decodeVertexPosition(V)+origin;
     vec3 exactPos = pos+subchunkOffset.xyz;
-    float fogLerp = clamp(computeFogLerp(exactPos, isCylindricalFog, fogStart, fogEnd) * fogColour.a, 0, 1);
-    OUT[id].fogLerp = float16_t(fogLerp);
+    OUT[id].fogLerp = clamp(computeFogLerp(exactPos, isCylindricalFog, fogStart, fogEnd) * fogColour.a, 0, 1);
     #endif
-    OUT[id].uv = f16vec2(decodeVertexUV(V));
 }
 
 

@@ -18,15 +18,11 @@
 
 
 layout(location = 0) out vec4 colour;
+#ifdef RENDER_FOG
 layout(location = 1) in Interpolants {
-    #ifdef RENDER_FOG
-    float16_t fogLerp;
-    #endif
-    f16vec2 uv;
-#ifdef TRANSLUCENT_PASS
-    f16vec3 v_colour;
-    #endif
+    float fogLerp;
 };
+#endif
 
 
 layout(binding = 1) uniform sampler2D tex_light;
@@ -43,12 +39,11 @@ vec3 computeMultiplier(Vertex V) {
     return tint.xyz;
 }
 
-void computeOutputColour(inout vec3 colour, uint quadId, bool triangle0) {
-    uvec3 TRI_INDICIES = triangle0?uvec3(0,1,2):uvec3(2,3,0);
-    Vertex V0 = terrainData[(quadId<<2)+TRI_INDICIES.x];
-    Vertex Vp = terrainData[(quadId<<2)+TRI_INDICIES.y];
-    Vertex V2 = terrainData[(quadId<<2)+TRI_INDICIES.z];
 
+Vertex V0;
+Vertex Vp;
+Vertex V2;
+void computeOutputColour(inout vec3 colour) {
     vec3 multiplier = gl_BaryCoordNV.x*computeMultiplier(V0) + gl_BaryCoordNV.y*computeMultiplier(Vp) + gl_BaryCoordNV.z*computeMultiplier(V2);
     colour *= multiplier;
 }
@@ -71,15 +66,23 @@ void applyFog(inout vec3 colour) {
 
 layout(binding = 0) uniform sampler2D tex_diffuse;
 void main() {
+    uint quadId = uint(gl_PrimitiveID)>>4;
+    bool triangle0 = uint((gl_PrimitiveID>>3)&1)==0;
+    uvec3 TRI_INDICIES = triangle0?uvec3(0,1,2):uvec3(2,3,0);
+    V0 = terrainData[(quadId<<2)+TRI_INDICIES.x];
+    Vp = terrainData[(quadId<<2)+TRI_INDICIES.y];
+    V2 = terrainData[(quadId<<2)+TRI_INDICIES.z];
+
+    vec2 uv = gl_BaryCoordNV.x*decodeVertexUV(V0) + gl_BaryCoordNV.y*decodeVertexUV(Vp) + gl_BaryCoordNV.z*decodeVertexUV(V2);
+
     #ifdef TRANSLUCENT_PASS
-    colour = texture(tex_diffuse, uv.xy, 0);
-    colour.rgb *= v_colour;
+    colour = texture(tex_diffuse, uv, 0);
     #else
-    colour = texture(tex_diffuse, uv.xy, ((gl_PrimitiveID>>2)&1)*-8.0f);
+    colour = texture(tex_diffuse, uv, ((gl_PrimitiveID>>2)&1)*-8.0f);
     if (colour.a < getVertexAlphaCutoff(uint(gl_PrimitiveID&3))) discard;
     colour.a = 1;
-    computeOutputColour(colour.rgb, uint(gl_PrimitiveID)>>4, uint((gl_PrimitiveID>>3)&1)==0);
     #endif
+    computeOutputColour(colour.rgb);
 
     #ifdef RENDER_FOG
     applyFog(colour.rgb);
