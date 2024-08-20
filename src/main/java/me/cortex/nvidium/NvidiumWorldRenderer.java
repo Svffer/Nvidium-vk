@@ -179,4 +179,7 @@ public class NvidiumWorldRenderer {
             return -1;
         }
     }
+    public int getMaxGeometryMemory() {
+        return (int) max_geometry_memory;
+    }
 }
