@@ -14,7 +14,6 @@ import java.nio.file.Path;
 
 public class NvidiumConfig {
     //The options
-    public int extra_rd = 100;
     public boolean enable_temporal_coherence = true;
     public int max_geometry_memory = 2048;
     public boolean automatic_memory = true;
@@ -23,7 +22,8 @@ public class NvidiumConfig {
 
     public int region_keep_distance = 32;
 
-    public boolean render_fog = true;
+    //It is not_ due to gson being a pain
+    public boolean not_render_fog = false;
     public TranslucencySortingLevel translucency_sorting_level = TranslucencySortingLevel.QUADS;
 
     public StatisticsLoggingLevel statistics_level = StatisticsLoggingLevel.NONE;

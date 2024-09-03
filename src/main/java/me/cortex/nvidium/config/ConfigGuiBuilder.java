@@ -91,7 +91,7 @@ public class ConfigGuiBuilder {
                         .setName(Text.translatable("nvidium.options.render_fog.name"))
                         .setTooltip(Text.translatable("nvidium.options.render_fog.tooltip"))
                         .setControl(TickBoxControl::new)
-                        .setBinding((opts, value) -> opts.render_fog = value, opts -> opts.render_fog)
+                        .setBinding((opts, value) -> opts.not_render_fog = !value, opts -> !opts.not_render_fog)
                         .setEnabled(Nvidium.IS_ENABLED)
                         .setImpact(OptionImpact.MEDIUM)
                         .setFlags(OptionFlag.REQUIRES_RENDERER_RELOAD)
