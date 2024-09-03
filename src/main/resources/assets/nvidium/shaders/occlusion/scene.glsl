@@ -84,6 +84,7 @@ layout(std140, binding=0) uniform SceneData {
     float fogStart;
     float fogEnd;
     bool isCylindricalFog;
+    uint flags;
 
     //align(2)
     uint16_t regionCount;//Number of regions in regionIndicies
@@ -101,4 +102,8 @@ ivec3 unpackOriginOffsetId(uint id) {
     int y = (int(uint((val>>50)&0x3fff))<<18)>>18;
     int z = (int(uint((val>>25)&0x1ffffff))<<7)>>7;
     return ivec3(x,y,z);
+}
+
+bool useBlockFaceCulling() {
+    return (flags&1)!=0;
 }

@@ -15,6 +15,7 @@ import me.cortex.nvidium.renderers.*;
 import me.cortex.nvidium.util.DownloadTaskStream;
 import me.cortex.nvidium.util.TickableManager;
 import me.cortex.nvidium.util.UploadingBufferStream;
+import me.jellysquid.mods.sodium.client.SodiumClientMod;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices;
 import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
 import net.minecraft.client.MinecraftClient;
@@ -295,6 +296,10 @@ public class RenderPipeline {
             MemoryUtil.memPutFloat(addr, RenderSystem.getShaderFogEnd());//FogEnd
             addr += 4;
             MemoryUtil.memPutInt(addr, RenderSystem.getShaderFogShape().getId());//IsSphericalFog
+            addr += 4;
+            int flags = 0;
+            flags |= SodiumClientMod.options().performance.useBlockFaceCulling?1:0;
+            MemoryUtil.memPutInt(addr, flags);//Flags
             addr += 4;
             MemoryUtil.memPutShort(addr, (short) visibleRegions);
             addr += 2;
