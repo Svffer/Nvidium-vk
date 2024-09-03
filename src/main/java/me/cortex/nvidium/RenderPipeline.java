@@ -91,7 +91,7 @@ public class RenderPipeline {
         this.uploadStream = uploadStream;
         this.downloadStream = downloadStream;
         this.sectionManager = sectionManager;
-        this.compiledForFog = !Nvidium.config.not_render_fog;
+        this.compiledForFog = Nvidium.config.render_fog;
 
         terrainRasterizer = new PrimaryTerrainRasterizer();
         regionRasterizer = new RegionRasterizer();
@@ -538,7 +538,7 @@ public class RenderPipeline {
     }
 
     public void reloadShaders() {
-        this.compiledForFog = !Nvidium.config.not_render_fog;
+        this.compiledForFog = Nvidium.config.render_fog;
         terrainRasterizer.delete();
         regionRasterizer.delete();
         sectionRasterizer.delete();

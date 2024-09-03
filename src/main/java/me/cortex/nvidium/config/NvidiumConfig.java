@@ -22,8 +22,8 @@ public class NvidiumConfig {
 
     public int region_keep_distance = 32;
 
-    //It is not_ due to gson being a pain
-    public boolean not_render_fog = false;
+
+    public boolean render_fog = true;
     public TranslucencySortingLevel translucency_sorting_level = TranslucencySortingLevel.QUADS;
 
     public StatisticsLoggingLevel statistics_level = StatisticsLoggingLevel.NONE;
