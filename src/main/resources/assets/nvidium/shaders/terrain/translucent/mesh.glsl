@@ -184,8 +184,8 @@ void main() {
     emitVertex(id, 3);
     #endif
 
-    gl_MeshPrimitivesNV[(gl_LocalInvocationID.x<<1)].gl_PrimitiveID = int((id>>2)<<4)|(0<<3);
-    gl_MeshPrimitivesNV[(gl_LocalInvocationID.x<<1)|1].gl_PrimitiveID = int((id>>2)<<4)|(1<<3);
+    gl_MeshPrimitivesNV[(gl_LocalInvocationID.x<<1)].gl_PrimitiveID = int((id>>2)<<1)|0;
+    gl_MeshPrimitivesNV[(gl_LocalInvocationID.x<<1)|1].gl_PrimitiveID = int((id>>2)<<1)|1;
 
     if (gl_LocalInvocationID.x == 0) {
         //Remaining quads in workgroup

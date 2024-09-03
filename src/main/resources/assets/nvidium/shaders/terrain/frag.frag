@@ -72,8 +72,8 @@ void applyFog(inout vec3 colour) {
 
 layout(binding = 0) uniform sampler2D tex_diffuse;
 void main() {
-    uint quadId = uint(gl_PrimitiveID)>>4;
-    bool triangle0 = uint((gl_PrimitiveID>>3)&1)==0;
+    uint quadId = uint(gl_PrimitiveID)>>1;
+    bool triangle0 = uint((gl_PrimitiveID)&1)==0;
     uvec3 TRI_INDICIES = triangle0?uvec3(0,1,2):uvec3(2,3,0);
     V0 = terrainData[(quadId<<2)+TRI_INDICIES.x];
     Vp = terrainData[(quadId<<2)+TRI_INDICIES.y];
@@ -84,9 +84,13 @@ void main() {
     colour = texture(tex_diffuse, uv, 0);
     colour.rgb *= v_colour;
     #else
+    //TODO: move to frag shader
+    float lodBias = hasMipping(V0)?0.0f:-8.0f;
+    uint alphaCutoff = rawVertexAlphaCutoff(V0);
+
     vec2 uv = gl_BaryCoordNV.x*decodeVertexUV(V0) + gl_BaryCoordNV.y*decodeVertexUV(Vp) + gl_BaryCoordNV.z*decodeVertexUV(V2);
-    colour = texture(tex_diffuse, uv, ((gl_PrimitiveID>>2)&1)*-8.0f);
-    if (colour.a < getVertexAlphaCutoff(uint(gl_PrimitiveID&3))) discard;
+    colour = texture(tex_diffuse, uv, lodBias);
+    if (colour.a < getVertexAlphaCutoff(alphaCutoff)) discard;
     colour.a = 1;
     computeOutputColour(colour.rgb);
     #endif

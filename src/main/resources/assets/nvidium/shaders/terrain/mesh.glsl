@@ -169,10 +169,7 @@ void main() {
     putVertex(vertIndex, V0); gl_MeshVerticesNV[vertIndex++].gl_Position = pV0;
     putVertex(vertIndex, V2); gl_MeshVerticesNV[vertIndex++].gl_Position = pV2;
 
-
-    uint lodBias = hasMipping(V0)?0:1;
-    uint alphaCutoff = rawVertexAlphaCutoff(V0);
-    int primData = int((lodBias<<2)|alphaCutoff|(id<<4));
+    int primData = int(id<<1);
 
     if (t0draw) {
         putVertex(vertIndex, V1); gl_MeshVerticesNV[vertIndex].gl_Position = pV1;
@@ -183,7 +180,7 @@ void main() {
         vertIndex++;
 
         //gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = int(id<<1);
-        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData|(0<<3);
+        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData|0;
     }
 
     if (t1draw) {
@@ -195,7 +192,7 @@ void main() {
         vertIndex++;
 
         //gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = int((id<<1)+1);
-        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData|(1<<3);
+        gl_MeshPrimitivesNV[triIndex++].gl_PrimitiveID = primData|1;
     }
 
 
