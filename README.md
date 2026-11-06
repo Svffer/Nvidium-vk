@@ -97,5 +97,5 @@ is `mise run check` (formatting, Error Prone, lint rules, an offline compile of 
 
 [LGPL-3.0](LICENSE.txt), the same license as the original repository. Nvidium is by
 [Cortex](https://github.com/MCRcortex). The NeoForge port and the Vulkan backend in this fork are by
-Vladimir Filatov ([svfr](https://www.patreon.com/cw/svfr)) and Claude (Anthropic) as co-authors. Sodium is
+Vladimir Filatov ([Svffer](https://github.com/Svffer), [Patreon](https://www.patreon.com/cw/svfr)) and Claude (Anthropic) as co-authors. Sodium is
 by the CaffeineMC team.
