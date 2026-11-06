@@ -1,0 +1,20 @@
+id: gl-only-in-gl-backend
+snapshots:
+  "import com.mojang.blaze3d.opengl.GlStateManager;\nclass Bad {}\n":
+    labels:
+    - source: import com.mojang.blaze3d.opengl.GlStateManager;
+      style: primary
+      start: 0
+      end: 48
+  "import org.lwjgl.opengl.GL33C;\nclass Bad {}\n":
+    labels:
+    - source: import org.lwjgl.opengl.GL33C;
+      style: primary
+      start: 0
+      end: 30
+  "import static org.lwjgl.opengl.GL11.glEnable;\nclass Bad {}\n":
+    labels:
+    - source: import static org.lwjgl.opengl.GL11.glEnable;
+      style: primary
+      start: 0
+      end: 45

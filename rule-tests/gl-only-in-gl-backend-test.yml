@@ -1,0 +1,17 @@
+id: gl-only-in-gl-backend
+valid:
+  - |
+    import me.cortex.nvidium.backend.IRenderBackend;
+    import org.lwjgl.system.MemoryUtil;
+    import com.mojang.blaze3d.systems.RenderSystem;
+    class Ok {}
+invalid:
+  - |
+    import static org.lwjgl.opengl.GL11.glEnable;
+    class Bad {}
+  - |
+    import org.lwjgl.opengl.GL33C;
+    class Bad {}
+  - |
+    import com.mojang.blaze3d.opengl.GlStateManager;
+    class Bad {}

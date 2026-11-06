@@ -1,0 +1,19 @@
+# Backend boundary (docs/VULKAN_PLAN.md §2, M1): everything that talks to OpenGL lives in
+# me.cortex.nvidium.backend.gl or in the GL-specific mixins. The rest of the mod goes through
+# me.cortex.nvidium.backend.IRenderBackend so that a Vulkan backend can be added next to it.
+id: gl-only-in-gl-backend
+language: Java
+severity: error
+message: OpenGL API used outside the GL backend
+note: |
+  Import org.lwjgl.opengl.* / com.mojang.blaze3d.opengl.* only under
+  src/main/java/me/cortex/nvidium/backend/gl/ or src/main/java/me/cortex/nvidium/mixin/minecraft/gl/.
+  Add the operation you need to IRenderBackend and implement it in GlRenderBackend instead.
+rule:
+  kind: import_declaration
+  regex: '\b(org\.lwjgl\.opengl|com\.mojang\.blaze3d\.opengl)\.'
+files:
+  - "src/main/java/**/*.java"
+ignores:
+  - "src/main/java/me/cortex/nvidium/backend/gl/**"
+  - "src/main/java/me/cortex/nvidium/mixin/minecraft/gl/**"

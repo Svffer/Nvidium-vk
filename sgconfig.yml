@@ -1,0 +1,6 @@
+# ast-grep project configuration (https://ast-grep.github.io/).
+# `ast-grep scan` runs every rule in rules/; `ast-grep test` runs the fixtures in rule-tests/.
+ruleDirs:
+  - rules
+testConfigs:
+  - testDir: rule-tests

@@ -4,10 +4,10 @@
   "compatibilityLevel": "JAVA_17",
   "client": [
     "minecraft.CommandEncoderAccessor",
-    "minecraft.GlCommandEncoderAccessor",
+    "minecraft.gl.GlCommandEncoderAccessor",
     "minecraft.MixinCamera",
     "minecraft.MixinFogRenderer",
-    "minecraft.MixinGlDevice",
+    "minecraft.gl.MixinGlDevice",
     "minecraft.TextureAtlasAccessor",
     "sodium.MixinChunkBuilderMeshingTask",
     "sodium.MixinChunkBuildOutput",
