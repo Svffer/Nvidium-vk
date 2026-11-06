@@ -34,7 +34,7 @@ java {
 }
 
 base {
-    archivesName = "nvidium-neoforge"
+    archivesName = "nvidium-vk"
 }
 
 neoForge {

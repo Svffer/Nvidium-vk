@@ -1,4 +1,10 @@
-# Nvidium for NeoForge, with a Vulkan backend
+# Nvidium-vk
+
+[![Patreon](https://img.shields.io/badge/Patreon-support%20the%20fork-f96854?logo=patreon)](https://www.patreon.com/cw/svfr)
+[![License: LGPL-3.0](https://img.shields.io/badge/license-LGPL--3.0-blue)](LICENSE.txt)
+
+Nvidium, the GPU-driven terrain renderer for Sodium on NVIDIA cards, ported to **NeoForge 26.2** and
+taught to run on **Minecraft's Vulkan backend**.
 
 A fork of [MCRcortex/nvidium](https://github.com/MCRcortex/nvidium) (branch `26.2`) that
 
@@ -24,7 +30,7 @@ built on `VK_EXT_mesh_shader` and buffer device addresses on top of Mojang's own
 
 ## Installation
 
-Drop the jar from the releases page into `mods/` next to Sodium. Nothing else to configure: when the
+Drop the jar from the [releases page](https://github.com/__GITHUB_OWNER__/Nvidium-vk/releases) into `mods/` next to Sodium. Nothing else to configure: when the
 game starts, nvidium checks the GPU and the active graphics backend and logs either
 `Enabling Nvidium` or the missing requirement. In F3, the right column shows
 `Using nvidium renderer: <version>` and the GPU time of each nvidium pass. Nvidium's own options
@@ -87,5 +93,7 @@ is `mise run check` (formatting, Error Prone, lint rules, an offline compile of 
 
 ## License and credits
 
-LGPL-3.0, as upstream. Nvidium is by [Cortex](https://github.com/MCRcortex); this fork contains the
-NeoForge port and the Vulkan backend. Sodium is by the CaffeineMC team.
+[LGPL-3.0](LICENSE.txt), the same license as the original repository. Nvidium is by
+[Cortex](https://github.com/MCRcortex). The NeoForge port and the Vulkan backend in this fork are by
+Vladimir Filatov ([svfr](https://www.patreon.com/cw/svfr)) and Claude (Anthropic) as co-authors. Sodium is
+by the CaffeineMC team.
