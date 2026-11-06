@@ -4,7 +4,7 @@ import it.unimi.dsi.fastutil.longs.*;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.NvidiumWorldRenderer;
 import me.cortex.nvidium.config.TranslucencySortingLevel;
-import me.cortex.nvidium.gl.RenderDevice;
+import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.sodiumCompat.INvidiumWorldRendererGetter;
 import me.cortex.nvidium.sodiumCompat.IRepackagedResult;
 import me.cortex.nvidium.util.BufferArena;
@@ -43,11 +43,11 @@ public class SectionManager {
 
     private final Long2ObjectOpenHashMap<int[]> translucencyQuadCounts = new Long2ObjectOpenHashMap<int[]>();
 
-    private final RenderDevice device;
+    private final IRenderBackend device;
 
     private final LongSet hiddenSectionKeys = new LongOpenHashSet();
 
-    public SectionManager(RenderDevice device, long fallbackMemorySize, UploadingBufferStream uploadStream, int quadVertexSize, NvidiumWorldRenderer worldRenderer) {
+    public SectionManager(IRenderBackend device, long fallbackMemorySize, UploadingBufferStream uploadStream, int quadVertexSize, NvidiumWorldRenderer worldRenderer) {
         int maxRegions = 50_000;
 
         this.device = device;

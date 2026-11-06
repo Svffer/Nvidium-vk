@@ -1,13 +1,10 @@
 package me.cortex.nvidium.mixin.sodium;
 
-import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuSampler;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.NvidiumWorldRenderer;
-import me.cortex.nvidium.mixin.minecraft.CommandEncoderAccessor;
-import me.cortex.nvidium.mixin.minecraft.GlCommandEncoderAccessor;
 import me.cortex.nvidium.sodiumCompat.INvidiumWorldRendererGetter;
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderMatrices;
@@ -18,7 +15,6 @@ import net.caffeinemc.mods.sodium.client.render.viewport.Viewport;
 import net.caffeinemc.mods.sodium.client.util.FogParameters;
 import net.minecraft.client.Camera;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL33C;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -57,7 +53,9 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
             if (pass == DefaultTerrainRenderPasses.CUTOUT) // Early exit, cutout will be rendered with SOLID
                 return;
 
-            try (RenderPass ignored = RenderSystem.getDevice()
+            boolean translucent = pass == DefaultTerrainRenderPasses.TRANSLUCENT;
+            var backend = Nvidium.backend;
+            try (RenderPass renderPass = RenderSystem.getDevice()
                     .createCommandEncoder()
                     .createRenderPass(
                             () -> "Nvidium Terrain",
@@ -66,35 +64,15 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
                             pass.getTarget().getDepthTextureView(),
                             OptionalDouble.empty()
                     )) {
-                // Invalidate lastProgram to prevent B3D caching bad program
-                ((GlCommandEncoderAccessor)
-                        ((CommandEncoderAccessor) RenderSystem.getDevice().createCommandEncoder())
-                                .nvidium$getCommandEncoderBackend())
-                        .nvidium$setLastProgram(null);
-
-                GlStateManager._disableScissorTest();
-                GlStateManager._enableCull();
-                GlStateManager._enableDepthTest();
-                GlStateManager._depthFunc(GL33C.GL_GEQUAL); // reverse-Z
-                GlStateManager._colorMask(0, 15);
-                GlStateManager._depthMask(true);
+                backend.beginLayer(renderPass, translucent);
 
                 if (pass == DefaultTerrainRenderPasses.SOLID) {
-                    GlStateManager._disableBlend(0);
-
                     this.getRenderer().renderFrame(pass, viewport, fogParameters, matrices, x, y, z, terrainSampler);
-                } else if (pass == DefaultTerrainRenderPasses.TRANSLUCENT) {
-                    GlStateManager._enableBlend(0);
-                    GlStateManager._blendFuncSeparate(
-                            GL33C.GL_SRC_ALPHA,
-                            GL33C.GL_ONE_MINUS_SRC_ALPHA,
-                            GL33C.GL_ONE,
-                            GL33C.GL_ONE_MINUS_SRC_ALPHA
-                    );
-
+                } else if (translucent) {
                     this.getRenderer().renderTranslucent(pass, terrainSampler);
-                    GlStateManager._disableBlend(0);
                 }
+
+                backend.endLayer(renderPass, translucent);
             }
         }
     }

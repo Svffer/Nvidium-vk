@@ -1,4 +1,4 @@
-package me.cortex.nvidium.gl;
+package me.cortex.nvidium.backend;
 
 public interface IResource {
     void delete();

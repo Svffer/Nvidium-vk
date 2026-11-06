@@ -1,4 +1,4 @@
-package me.cortex.nvidium.gl.images;
+package me.cortex.nvidium.backend.gl.images;
 
 import com.mojang.blaze3d.opengl.GlConst;
 import com.mojang.blaze3d.opengl.GlStateManager;

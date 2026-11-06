@@ -3,8 +3,8 @@ package me.cortex.nvidium.managers;
 
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import me.cortex.nvidium.Nvidium;
-import me.cortex.nvidium.gl.RenderDevice;
-import me.cortex.nvidium.gl.buffers.IDeviceMappedBuffer;
+import me.cortex.nvidium.backend.IRenderBackend;
+import me.cortex.nvidium.backend.IDeviceMappedBuffer;
 import me.cortex.nvidium.mixin.sodium.ViewportAccessor;
 import me.cortex.nvidium.util.IdProvider;
 import me.cortex.nvidium.util.UploadingBufferStream;
@@ -28,7 +28,7 @@ public class RegionManager {
 
     private final IDeviceMappedBuffer regionBuffer;
     private final IDeviceMappedBuffer sectionBuffer;
-    private final RenderDevice device;
+    private final IRenderBackend device;
     private final UploadingBufferStream uploadStream;
 
     private final Long2IntOpenHashMap regionTransformationIdMapping = new Long2IntOpenHashMap();
@@ -40,7 +40,7 @@ public class RegionManager {
 
     private final Consumer<Integer> regionUploadCallback;
 
-    public RegionManager(RenderDevice device, int maxRegions, int maxSections, UploadingBufferStream uploadStream, Consumer<Integer> regionUploaded) {
+    public RegionManager(IRenderBackend device, int maxRegions, int maxSections, UploadingBufferStream uploadStream, Consumer<Integer> regionUploaded) {
         this.regionMap.defaultReturnValue(-1);
         this.device = device;
         this.regionBuffer = device.createDeviceOnlyMappedBuffer((long) maxRegions * META_SIZE);

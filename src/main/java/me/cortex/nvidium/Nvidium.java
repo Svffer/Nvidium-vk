@@ -1,10 +1,9 @@
 package me.cortex.nvidium;
 
+import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.config.NvidiumConfig;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.ModContainer;
-import net.minecraft.util.Util;
-import org.lwjgl.opengl.GL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +16,9 @@ public class Nvidium {
     public static boolean SUPPORTS_PERSISTENT_SPARSE_ADDRESSABLE_BUFFER = true;
     public static boolean FORCE_DISABLE = Boolean.getBoolean("nvidium.forceDisable");
 
+    /** The active GPU backend, or {@code null} when the system is not capable. Set once from the device-creation mixins. */
+    public static IRenderBackend backend;
+
     public static NvidiumConfig config = NvidiumConfig.loadOrCreate();
 
     static {
@@ -26,23 +28,18 @@ public class Nvidium {
         MOD_VERSION = version+"-"+commit;
     }
 
-    public static void checkSystemIsCapable() {
-        var cap = GL.getCapabilities();
-        boolean supported = cap.GL_NV_mesh_shader &&
-                cap.GL_NV_uniform_buffer_unified_memory &&
-                cap.GL_NV_vertex_buffer_unified_memory &&
-                cap.GL_NV_representative_fragment_test &&
-                cap.GL_ARB_sparse_buffer &&
-                cap.GL_NV_bindless_multi_draw_indirect;
-        IS_COMPATIBLE = supported;
+    /**
+     * Called from the backend-specific device-creation mixin with the backend that matched the
+     * created {@code GpuDevice}, or {@code null} when its requirements are not met.
+     */
+    public static void initBackend(IRenderBackend candidate) {
+        backend = candidate;
+        IS_COMPATIBLE = candidate != null;
         if (IS_COMPATIBLE) {
-            LOGGER.info("All capabilities met");
+            LOGGER.info("All capabilities met ({})", candidate.name());
+            SUPPORTS_PERSISTENT_SPARSE_ADDRESSABLE_BUFFER = candidate.supportsSparseBuffers();
         } else {
             LOGGER.warn("Not all requirements met, disabling nvidium");
-        }
-        if (IS_COMPATIBLE && Util.getPlatform() == Util.OS.LINUX) {
-            LOGGER.warn("Linux currently uses fallback terrain buffer due to driver inconsistencies, expect increase vram usage");
-            SUPPORTS_PERSISTENT_SPARSE_ADDRESSABLE_BUFFER = false;
         }
 
         if (IS_COMPATIBLE) {

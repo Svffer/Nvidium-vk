@@ -1,17 +1,10 @@
 package me.cortex.nvidium.util;
 
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import me.cortex.nvidium.gl.RenderDevice;
-import me.cortex.nvidium.gl.buffers.Buffer;
-import me.cortex.nvidium.gl.buffers.PersistentClientMappedBuffer;
-import me.cortex.nvidium.util.SegmentedManager;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
+import me.cortex.nvidium.backend.IBuffer;
+import me.cortex.nvidium.backend.IClientMappedBuffer;
+import me.cortex.nvidium.backend.IRenderBackend;
 
 //Download stream from gpu to cpu
 public class DownloadTaskStream {
@@ -20,15 +13,15 @@ public class DownloadTaskStream {
     private record Download(long addr, IDownloadFinishedCallback callback) {}
 
     private final SegmentedManager allocator = new SegmentedManager();
-    private final RenderDevice device;
-    private PersistentClientMappedBuffer buffer;
+    private final IRenderBackend backend;
+    private final IClientMappedBuffer buffer;
 
     private int cidx;
     private final ObjectList<Download>[] allocations;
-    public DownloadTaskStream(RenderDevice device, int frames, long size) {
-        this.device = device;
+    public DownloadTaskStream(IRenderBackend backend, int frames, long size) {
+        this.backend = backend;
         allocator.setLimit(size);
-        buffer = device.createClientMappedBuffer(size);
+        buffer = backend.createClientMappedBuffer(size);
         TickableManager.register(this);
         allocations = new ObjectList[frames];
         for (int i = 0; i < frames; i++) {
@@ -36,9 +29,9 @@ public class DownloadTaskStream {
         }
     }
 
-    public void download(Buffer source, long offset, int size, IDownloadFinishedCallback callback) {
+    public void download(IBuffer source, long offset, int size, IDownloadFinishedCallback callback) {
         long addr = allocator.alloc(size);
-        device.copyBuffer(source, buffer, offset, addr, size);
+        backend.copyBuffer(source, buffer, offset, addr, size);
         allocations[cidx].add(new Download(addr, callback));
     }
 

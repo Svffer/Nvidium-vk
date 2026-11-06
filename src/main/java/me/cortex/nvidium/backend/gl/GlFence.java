@@ -1,8 +1,11 @@
-package me.cortex.nvidium.gl;
+package me.cortex.nvidium.backend.gl;
+
+import me.cortex.nvidium.backend.IFence;
+import me.cortex.nvidium.backend.TrackedObject;
 
 import static org.lwjgl.opengl.GL32.*;
 
-public class GlFence extends TrackedObject {
+public class GlFence extends TrackedObject implements IFence {
     private final long fence;
     private boolean signaled;
 
@@ -10,6 +13,7 @@ public class GlFence extends TrackedObject {
         this.fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     }
 
+    @Override
     public boolean signaled() {
         this.assertNotFreed();
         if (!this.signaled) {

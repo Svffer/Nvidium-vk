@@ -1,28 +1,30 @@
 package me.cortex.nvidium.managers;
 
-import me.cortex.nvidium.gl.buffers.Buffer;
-import me.cortex.nvidium.gl.shader.Shader;
+import me.cortex.nvidium.backend.Barrier;
+import me.cortex.nvidium.backend.IBuffer;
+import me.cortex.nvidium.backend.IRenderBackend;
+import me.cortex.nvidium.backend.IShader;
 import me.cortex.nvidium.sodiumCompat.ShaderLoader;
 import me.cortex.nvidium.util.DownloadTaskStream;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.system.MemoryUtil;
 
-import static me.cortex.nvidium.gl.shader.ShaderType.FRAGMENT;
-import static me.cortex.nvidium.gl.shader.ShaderType.MESH;
-import static org.lwjgl.opengl.GL42.glMemoryBarrier;
-import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
-import static org.lwjgl.opengl.NVMeshShader.glDrawMeshTasksNV;
+import static me.cortex.nvidium.backend.ShaderType.FRAGMENT;
+import static me.cortex.nvidium.backend.ShaderType.MESH;
 
 public class RegionVisibilityTracker {
-    private final Shader shader = Shader.make()
-            .addSource(MESH, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/mesh.glsl")))
-            .addSource(FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/fragment.frag")))
-            .compile();
+    private final IRenderBackend backend;
+    private final IShader shader;
 
     private final DownloadTaskStream downStream;
     private final int[] frustum;
     private final int[] visible;
-    public RegionVisibilityTracker(DownloadTaskStream downStream, int maxRegions) {
+    public RegionVisibilityTracker(IRenderBackend backend, DownloadTaskStream downStream, int maxRegions) {
+        this.backend = backend;
+        this.shader = backend.createShader()
+                .addSource(MESH, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/mesh.glsl")))
+                .addSource(FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/fragment.frag")))
+                .compile();
         this.downStream = downStream;
         visible = new int[maxRegions];
         frustum = new int[maxRegions];
@@ -34,11 +36,10 @@ public class RegionVisibilityTracker {
 
     private int fram = 0;
     //This is kind of evil in the fact that it just reuses the visibility buffer
-    public void computeVisibility(int regionCount, Buffer regionVisibilityBuffer, short[] regionMapping) {
-        shader.bind();
+    public void computeVisibility(int regionCount, IBuffer regionVisibilityBuffer, short[] regionMapping) {
         fram++;
-        glDrawMeshTasksNV(0, (regionCount + 3) / 4);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        backend.drawMeshTasks(shader, 0, (regionCount + 3) / 4);
+        backend.barrier(Barrier.SHADER_STORAGE);
         downStream.download(regionVisibilityBuffer, 0, regionCount, ptr -> {
             for (int i = 0; i < regionMapping.length; i++) {
                 if (MemoryUtil.memGetByte(ptr + i) == 1) {

@@ -4,8 +4,9 @@ import com.mojang.blaze3d.textures.GpuSampler;
 import it.unimi.dsi.fastutil.ints.*;
 import me.cortex.nvidium.config.StatisticsLoggingLevel;
 import me.cortex.nvidium.config.TranslucencySortingLevel;
-import me.cortex.nvidium.gl.RenderDevice;
-import me.cortex.nvidium.gl.buffers.IDeviceMappedBuffer;
+import me.cortex.nvidium.backend.Barrier;
+import me.cortex.nvidium.backend.IDeviceMappedBuffer;
+import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.managers.RegionManager;
 import me.cortex.nvidium.managers.RegionVisibilityTracker;
 import me.cortex.nvidium.managers.SectionManager;
@@ -23,31 +24,16 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.TextureFilteringMethod;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import org.joml.*;
-import org.lwjgl.opengl.GL11C;
 import org.lwjgl.system.MemoryUtil;
 
 import java.lang.Math;
 import java.util.BitSet;
 import java.util.List;
 
-import static me.cortex.nvidium.gl.buffers.PersistentSparseAddressableBuffer.alignUp;
-import static org.lwjgl.opengl.ARBDirectStateAccess.*;
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL30C.GL_R8UI;
-import static org.lwjgl.opengl.GL30C.GL_RED_INTEGER;
-import static org.lwjgl.opengl.GL42.*;
-import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
-import static org.lwjgl.opengl.NVRepresentativeFragmentTest.GL_REPRESENTATIVE_FRAGMENT_TEST_NV;
-import static org.lwjgl.opengl.NVShaderBufferStore.GL_SHADER_GLOBAL_ACCESS_BARRIER_BIT_NV;
-import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_ADDRESS_NV;
-import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
-import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.*;
+import static me.cortex.nvidium.util.MathUtil.alignUp;
 
 public class RenderPipeline {
-    public static final int GL_DRAW_INDIRECT_UNIFIED_NV = 0x8F40;
-    public static final int GL_DRAW_INDIRECT_ADDRESS_NV = 0x8F41;
-
-    private final RenderDevice device;
+    private final IRenderBackend device;
     private final UploadingBufferStream uploadStream;
     private final DownloadTaskStream downloadStream;
 
@@ -121,20 +107,20 @@ public class RenderPipeline {
 
     private final Statistics stats;
 
-    public RenderPipeline(RenderDevice device, UploadingBufferStream uploadStream, DownloadTaskStream downloadStream, SectionManager sectionManager) {
+    public RenderPipeline(IRenderBackend device, UploadingBufferStream uploadStream, DownloadTaskStream downloadStream, SectionManager sectionManager) {
         this.device = device;
         this.uploadStream = uploadStream;
         this.downloadStream = downloadStream;
         this.sectionManager = sectionManager;
         this.compiledForFog = Nvidium.config.render_fog;
 
-        terrainRasterizer = new PrimaryTerrainRasterizer();
-        regionRasterizer = new RegionRasterizer();
-        sectionRasterizer = new SectionRasterizer();
-        temporalRasterizer = new TemporalTerrainRasterizer();
-        translucencyTerrainRasterizer = new TranslucentTerrainRasterizer();
-        regionSectionSorter = new SortRegionSectionPhase();
-        cmdBufferBuilder = new CmdBufferBuilder();
+        terrainRasterizer = new PrimaryTerrainRasterizer(device);
+        regionRasterizer = new RegionRasterizer(device);
+        sectionRasterizer = new SectionRasterizer(device);
+        temporalRasterizer = new TemporalTerrainRasterizer(device);
+        translucencyTerrainRasterizer = new TranslucentTerrainRasterizer(device);
+        regionSectionSorter = new SortRegionSectionPhase(device);
+        cmdBufferBuilder = new CmdBufferBuilder(device);
 
         int maxRegions = sectionManager.getRegionManager().maxRegions();
 
@@ -150,7 +136,7 @@ public class RenderPipeline {
         this.originOffsetArray = device.createDeviceOnlyMappedBuffer(RegionManager.MAX_TRANSFORMATION_COUNT * 8);
 
         regionVisibilityTracker = new BitSet(maxRegions);
-        regionVisibilityTracking = new RegionVisibilityTracker(downloadStream, maxRegions);
+        regionVisibilityTracking = new RegionVisibilityTracker(device, downloadStream, maxRegions);
 
         statisticsBuffer = device.createDeviceOnlyMappedBuffer(4*4);
         stats = new Statistics();
@@ -166,7 +152,7 @@ public class RenderPipeline {
             }
         }
         //Clear the origin offset
-        nglClearNamedBufferData(this.originOffsetArray.getId(), GL_R8UI, GL_RED_INTEGER, GL_UNSIGNED_BYTE, 0);
+        device.clearBuffer(this.originOffsetArray, 0, this.originOffsetArray.getSize());
 
 
     }
@@ -201,9 +187,6 @@ public class RenderPipeline {
     //NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
     public void renderFrame(TerrainRenderPass pass, Viewport viewport, FogParameters fogParameters, ChunkRenderMatrices crm, double px, double py, double pz, GpuSampler terrainSampler) {
         if (sectionManager.getRegionManager().regionCount() == 0) return;//Dont render anything if there is nothing to render
-
-        final int DEBUG_RENDER_LEVEL = 0;//0: no debug, 1: region debug, 2: section debug
-        final boolean WRITE_DEPTH = false;
 
         /*
         for (int i = 0; i <3*3*3;i++) {
@@ -267,7 +250,7 @@ public class RenderPipeline {
                     if (regionVisibilityTracker.get(i)) {//Going from visible to non visible
                         //Clear the visibility bits
                         if (Nvidium.config.enable_temporal_coherence) {
-                            nglClearNamedBufferSubData(sectionVisibility.getId(), GL_R8UI, (long) i << 8, 255, GL_RED_INTEGER, GL_UNSIGNED_BYTE, 0);
+                            device.clearBuffer(sectionVisibility, (long) i << 8, 255);
                         }
                     }
                     regionVisibilityTracker.clear(i);
@@ -399,99 +382,52 @@ public class RenderPipeline {
         //}
 
 
-        glEnableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
-        glEnableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
-        glEnableClientState(GL_ELEMENT_ARRAY_UNIFIED_NV);
-        glEnableClientState(GL_DRAW_INDIRECT_UNIFIED_NV);
-        //Bind the uniform, it doesnt get wiped between shader changes
-        glBufferAddressRangeNV(GL_UNIFORM_BUFFER_ADDRESS_NV, 0, sceneUniform.getDeviceAddress(), SCENE_SIZE);
+        device.beginScene(sceneUniform, SCENE_SIZE);
 
         if (prevRegionCount != 0) {
-            glEnable(GL_DEPTH_TEST);
-            terrainRasterizer.raster(pass, prevRegionCount, terrainCommandBuffer.getDeviceAddress(), terrainSampler);
-            glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+            terrainRasterizer.raster(pass, prevRegionCount, terrainCommandBuffer, terrainSampler);
+            device.barrier(Barrier.FRAMEBUFFER);
         }
 
         if (regionSortSize != 0) {
-            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+            device.barrier(Barrier.SHADER_STORAGE);
             regionSectionSorter.dispatch(regionSortSize);
-            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+            device.barrier(Barrier.SHADER_STORAGE);
         }
 
-        //NOTE: For GL_REPRESENTATIVE_FRAGMENT_TEST_NV to work, depth testing must be disabled, or depthMask = false
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_GEQUAL);
-        glDepthMask(false);
-        if (DEBUG_RENDER_LEVEL == 1 && WRITE_DEPTH) {
-            glDepthMask(true);
-        }
-        if (DEBUG_RENDER_LEVEL != 1) {
-            glColorMask(false, false, false, false);
-        }
-        if (DEBUG_RENDER_LEVEL == 0)
-        {
-            glEnable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
-        }
+        //GPU occlusion culling: region boxes, then section boxes, depth tested against last frame's terrain
+        device.beginOcclusionRaster();
 
         regionRasterizer.raster(visibleRegions);
 
-        if (DEBUG_RENDER_LEVEL == 1) {
-            glColorMask(false, false, false, false);
-        }
-
-        //glMemoryBarrier(GL_SHADER_GLOBAL_ACCESS_BARRIER_BIT_NV);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-        //glColorMask(true, true, true, true);
-
-        if (DEBUG_RENDER_LEVEL == 2) {
-            glColorMask(true, true, true, true);
-        }
-        if (DEBUG_RENDER_LEVEL == 2 && WRITE_DEPTH) {
-            glDepthMask(true);
-        }
+        device.barrier(Barrier.SHADER_STORAGE);
 
         sectionRasterizer.raster(visibleRegions);
-        glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
-        glDepthMask(true);
-        glColorMask(true, true, true, true);
+        device.endOcclusionRaster();
 
-        //glMemoryBarrier(GL_SHADER_GLOBAL_ACCESS_BARRIER_BIT_NV);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        device.barrier(Barrier.SHADER_STORAGE);
         cmdBufferBuilder.dispatch(visibleRegions);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
+        device.barrier(Barrier.SHADER_STORAGE);
+        device.barrier(Barrier.COMMAND);
 
         prevRegionCount = visibleRegions;
 
         //Do temporal rasterization
         if (Nvidium.config.enable_temporal_coherence) {
-            glMemoryBarrier(GL_COMMAND_BARRIER_BIT);
-            temporalRasterizer.raster(pass, visibleRegions, temporalCommandBuffer.getDeviceAddress(), terrainSampler);
+            device.barrier(Barrier.COMMAND);
+            temporalRasterizer.raster(pass, visibleRegions, temporalCommandBuffer, terrainSampler);
         }
 
 
         {//Do proper visibility tracking
-            glDepthMask(false);
-            glColorMask(false, false, false, false);
-            glEnable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
+            device.beginOcclusionRaster();
 
             regionVisibilityTracking.computeVisibility(visibleRegions, regionVisibility, regionMap);
 
-            glDisable(GL_REPRESENTATIVE_FRAGMENT_TEST_NV);
-            glDepthMask(true);
-            glColorMask(true, true, true, true);
+            device.endOcclusionRaster();
         }
 
-        glDisableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
-        glDisableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
-        glDisableClientState(GL_ELEMENT_ARRAY_UNIFIED_NV);
-        glDisableClientState(GL_DRAW_INDIRECT_UNIFIED_NV);
-        glDepthFunc(GL11C.GL_GEQUAL);
-
-        //if ((err = glGetError()) != 0) {
-        //    throw new IllegalStateException("GLERROR: "+err);
-        //}
+        device.endScene();
     }
 
     void enqueueRegionSort(int regionId) {
@@ -515,26 +451,13 @@ public class RenderPipeline {
     //Translucency is rendered in a very cursed and incorrect way
     // it hijacks the unassigned indirect command dispatch and uses that to dispatch the translucent chunks as well
     public void renderTranslucent(TerrainRenderPass pass, GpuSampler terrainSampler) {
-        glEnableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
-        glEnableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
-        glEnableClientState(GL_ELEMENT_ARRAY_UNIFIED_NV);
-        glEnableClientState(GL_DRAW_INDIRECT_UNIFIED_NV);
         //Need to rebind the uniform since it might have been wiped
-        glBufferAddressRangeNV(GL_UNIFORM_BUFFER_ADDRESS_NV, 0, sceneUniform.getDeviceAddress(), SCENE_SIZE);
+        device.beginScene(sceneUniform, SCENE_SIZE);
 
         //Translucency sorting
-        {
-            glEnable(GL_DEPTH_TEST);
-            translucencyTerrainRasterizer.raster(pass, prevRegionCount, translucencyCommandBuffer.getDeviceAddress(), terrainSampler);
-        }
+        translucencyTerrainRasterizer.raster(pass, prevRegionCount, translucencyCommandBuffer, terrainSampler);
 
-        glDisableClientState(GL_UNIFORM_BUFFER_UNIFIED_NV);
-        glDisableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
-        glDisableClientState(GL_ELEMENT_ARRAY_UNIFIED_NV);
-        glDisableClientState(GL_DRAW_INDIRECT_UNIFIED_NV);
-
-
-
+        device.endScene();
 
         //Download statistics
         if (Nvidium.config.statistics_level.ordinal() > StatisticsLoggingLevel.FRUSTUM.ordinal()){
@@ -627,12 +550,12 @@ public class RenderPipeline {
         regionSectionSorter.delete();
         cmdBufferBuilder.delete();
 
-        terrainRasterizer = new PrimaryTerrainRasterizer();
-        regionRasterizer = new RegionRasterizer();
-        sectionRasterizer = new SectionRasterizer();
-        temporalRasterizer = new TemporalTerrainRasterizer();
-        translucencyTerrainRasterizer = new TranslucentTerrainRasterizer();
-        regionSectionSorter = new SortRegionSectionPhase();
-        cmdBufferBuilder = new CmdBufferBuilder();
+        terrainRasterizer = new PrimaryTerrainRasterizer(device);
+        regionRasterizer = new RegionRasterizer(device);
+        sectionRasterizer = new SectionRasterizer(device);
+        temporalRasterizer = new TemporalTerrainRasterizer(device);
+        translucencyTerrainRasterizer = new TranslucentTerrainRasterizer(device);
+        regionSectionSorter = new SortRegionSectionPhase(device);
+        cmdBufferBuilder = new CmdBufferBuilder(device);
     }
 }

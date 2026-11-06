@@ -2,7 +2,7 @@ package me.cortex.nvidium;
 
 import com.mojang.blaze3d.textures.GpuSampler;
 import me.cortex.nvidium.config.TranslucencySortingLevel;
-import me.cortex.nvidium.gl.RenderDevice;
+import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.managers.SectionManager;
 import me.cortex.nvidium.sodiumCompat.NvidiumCompactChunkVertex;
 import me.cortex.nvidium.util.DownloadTaskStream;
@@ -26,11 +26,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.lwjgl.opengl.GL11.glGetInteger;
-import static org.lwjgl.opengl.NVXGPUMemoryInfo.GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
-
 public class NvidiumWorldRenderer {
-    private static final RenderDevice device = new RenderDevice();
+    private final IRenderBackend device;
 
     private final UploadingBufferStream uploadStream;
     private final DownloadTaskStream downloadStream;
@@ -45,6 +42,10 @@ public class NvidiumWorldRenderer {
 
     //Note: the reason that asyncChunkTracker is passed in as an already constructed object is cause of the amount of argmuents it takes to construct it
     public NvidiumWorldRenderer() {
+        this.device = Nvidium.backend;
+        if (this.device == null) {
+            throw new IllegalStateException("Nvidium render backend not initialised");
+        }
         int frames = 3;
         //32 mb upload buffer
         this.uploadStream = new UploadingBufferStream(device, 32000000);
@@ -123,7 +124,7 @@ public class NvidiumWorldRenderer {
 
     private void update_allowed_memory() {
         if (Nvidium.config.automatic_memory) {
-            max_geometry_memory = (glGetInteger(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX) / 1024) + (sectionManager==null?0:sectionManager.terrainAreana.getMemoryUsed()/(1024*1024));
+            max_geometry_memory = device.getAvailableDeviceMemoryMB() + (sectionManager==null?0:sectionManager.terrainAreana.getMemoryUsed()/(1024*1024));
             max_geometry_memory -= 1024;//Minus 1gb of vram
             max_geometry_memory = Math.max(2048, max_geometry_memory);//Minimum 2 gb of vram
         } else {

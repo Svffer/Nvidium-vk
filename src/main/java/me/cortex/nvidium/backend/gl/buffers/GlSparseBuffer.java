@@ -1,8 +1,9 @@
-package me.cortex.nvidium.gl.buffers;
+package me.cortex.nvidium.backend.gl.buffers;
 
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import me.cortex.nvidium.Nvidium;
-import me.cortex.nvidium.gl.GlObject;
+import me.cortex.nvidium.backend.ISparseBuffer;
+import me.cortex.nvidium.backend.gl.GlObject;
+import me.cortex.nvidium.util.MathUtil;
 import org.lwjgl.opengl.ARBSparseBuffer;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL21;
@@ -14,12 +15,8 @@ import static org.lwjgl.opengl.GL15C.GL_READ_WRITE;
 import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
 import static org.lwjgl.opengl.NVShaderBufferLoad.*;
 
-public class PersistentSparseAddressableBuffer extends GlObject implements IDeviceMappedBuffer {
-    public static long alignUp(long number, long alignment) {
-        long delta = number % alignment;
-        return delta == 0?number: number + (alignment - delta);
-    }
-
+/** {@code ARB_sparse_buffer} storage made resident via {@code NV_shader_buffer_load}. */
+public class GlSparseBuffer extends GlObject implements ISparseBuffer {
     public final long addr;
     public final long size;
 
@@ -28,12 +25,9 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
     // 1mb seems to work well
     public static final long PAGE_SIZE = 1<<20;//16
 
-    public PersistentSparseAddressableBuffer(long size) {
+    public GlSparseBuffer(long size) {
         super(glCreateBuffers());
-        if (!Nvidium.SUPPORTS_PERSISTENT_SPARSE_ADDRESSABLE_BUFFER) {
-            throw new IllegalStateException();
-        }
-        this.size = alignUp(size, PAGE_SIZE);
+        this.size = MathUtil.alignUp(size, PAGE_SIZE);
         glNamedBufferStorage(id, size, GL_SPARSE_STORAGE_BIT_ARB);
         long[] holder = new long[1];
         glMakeNamedBufferResidentNV(id, GL_READ_WRITE);
@@ -70,16 +64,24 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
         }
     }
 
+    @Override
+    public long pageSize() {
+        return PAGE_SIZE;
+    }
+
+    @Override
     public int getPagesCommitted() {
         return allocationCount.size();
     }
 
+    @Override
     public void ensureAllocated(long addr, long size) {
         int pstart = (int) (addr/PAGE_SIZE);
         int pend   = (int) ((addr+size+PAGE_SIZE-1)/PAGE_SIZE);
         allocatePages(pstart, pend-pstart);
     }
 
+    @Override
     public void deallocate(long addr, long size) {
         int pstart = (int) (addr/PAGE_SIZE);
         int pend   = (int) ((addr+size+PAGE_SIZE-1)/PAGE_SIZE);
@@ -91,6 +93,7 @@ public class PersistentSparseAddressableBuffer extends GlObject implements IDevi
         return addr;
     }
 
+    @Override
     public void delete() {
         super.free0();
         glMakeNamedBufferNonResidentNV(id);

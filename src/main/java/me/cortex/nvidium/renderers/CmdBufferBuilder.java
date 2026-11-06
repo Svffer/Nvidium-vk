@@ -1,24 +1,25 @@
 package me.cortex.nvidium.renderers;
 
-import me.cortex.nvidium.gl.shader.Shader;
+import me.cortex.nvidium.backend.IRenderBackend;
+import me.cortex.nvidium.backend.IShader;
 import me.cortex.nvidium.sodiumCompat.ShaderLoader;
 import net.minecraft.resources.Identifier;
 
-import static me.cortex.nvidium.gl.shader.ShaderType.COMPUTE;
-import static org.lwjgl.opengl.GL43C.glDispatchCompute;
+import static me.cortex.nvidium.backend.ShaderType.COMPUTE;
 
 public class CmdBufferBuilder extends Phase {
-    private final Shader shader = Shader.make()
-            .addSource(COMPUTE, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/command_buffer/command_buffer_builder.comp")))
-            .compile();
+    private final IShader shader;
 
-    public CmdBufferBuilder() {
+    public CmdBufferBuilder(IRenderBackend backend) {
+        super(backend);
+        this.shader = backend.createShader()
+                .addSource(COMPUTE, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/command_buffer/command_buffer_builder.comp")))
+                .compile();
     }
 
     public void dispatch(int regionCount) {
-        shader.bind();
         timing.marker();
-        glDispatchCompute(regionCount, 1, 1);
+        backend.dispatchCompute(shader, regionCount, 1, 1);
         timing.marker();
         timing.tick();
     }

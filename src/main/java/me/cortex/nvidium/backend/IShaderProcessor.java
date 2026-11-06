@@ -1,4 +1,4 @@
-package me.cortex.nvidium.gl.shader;
+package me.cortex.nvidium.backend;
 
 public interface IShaderProcessor {
     String process(ShaderType type, String source);

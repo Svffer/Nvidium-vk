@@ -1,64 +1,48 @@
 package me.cortex.nvidium.renderers;
 
-import com.mojang.blaze3d.opengl.GlSampler;
-import com.mojang.blaze3d.opengl.GlStateManager;
-import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import me.cortex.nvidium.gl.shader.Shader;
+import me.cortex.nvidium.backend.IDeviceMappedBuffer;
+import me.cortex.nvidium.backend.IRenderBackend;
+import me.cortex.nvidium.backend.IShader;
 import me.cortex.nvidium.sodiumCompat.ShaderLoader;
-import me.cortex.nvidium.util.GPUTiming;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderDefines;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.opengl.*;
 
-import static me.cortex.nvidium.RenderPipeline.GL_DRAW_INDIRECT_ADDRESS_NV;
-import static me.cortex.nvidium.gl.shader.ShaderType.*;
-import static org.lwjgl.opengl.NVMeshShader.glMultiDrawMeshTasksIndirectNV;
-import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.glBufferAddressRangeNV;
+import static me.cortex.nvidium.backend.ShaderType.*;
 
 public class TranslucentTerrainRasterizer extends Phase {
-    private final Shader shader = Shader.make()
-            .addSource(TASK, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/task.glsl")))
-            .addSource(MESH, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/mesh.glsl")))
-            .addSource(FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/frag.frag"), ShaderDefines.builder().define("TRANSLUCENT_PASS")))
-            .compile();
+    private final IShader shader;
 
-    public TranslucentTerrainRasterizer() {
-    }
-
-    private static void setTexture(GpuTextureView texView, int bindingPoint, GpuSampler sampler) {
-        GlTexture tex = (GlTexture) texView.texture();
-        GlStateManager._activeTexture(GL32C.GL_TEXTURE0 + bindingPoint);
-        GlStateManager._bindTexture(tex.glId());
-        GlStateManager._texParameter(GL32C.GL_TEXTURE_2D, 33084, texView.baseMipLevel());
-        GlStateManager._texParameter(GL32C.GL_TEXTURE_2D, 33085, texView.baseMipLevel() + texView.mipLevels() - 1);
-        GL33C.glBindSampler(bindingPoint, ((GlSampler) sampler).getId());
+    public TranslucentTerrainRasterizer(IRenderBackend backend) {
+        super(backend);
+        this.shader = backend.createShader()
+                .addSource(TASK, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/task.glsl")))
+                .addSource(MESH, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/mesh.glsl")))
+                .addSource(FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/frag.frag"), ShaderDefines.builder().define("TRANSLUCENT_PASS")))
+                .compile();
     }
 
     //Translucency is rendered in a very cursed and incorrect way
     // it hijacks the unassigned indirect command dispatch and uses that to dispatch the translucent chunks as well
-    public void raster(TerrainRenderPass pass, int regionCount, long commandAddr, GpuSampler terrainSampler) {
-        shader.bind();
-
+    public void raster(TerrainRenderPass pass, int regionCount, IDeviceMappedBuffer commandBuffer, GpuSampler terrainSampler) {
         GpuTextureView blockTexture = pass.getAtlas();
         GpuTextureView lightTexture = Minecraft.getInstance().gameRenderer.lightmap();
 
-        setTexture(blockTexture, 0, terrainSampler);
-        setTexture(lightTexture, 1, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+        backend.bindTexture(0, blockTexture, terrainSampler);
+        backend.bindTexture(1, lightTexture, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
 
-        //the +8*6 is to offset to the unassigned dispatch
-        glBufferAddressRangeNV(GL_DRAW_INDIRECT_ADDRESS_NV, 0, commandAddr, regionCount*8L);//Bind the command buffer
         timing.marker();
-        glMultiDrawMeshTasksIndirectNV( 0, regionCount, 0);
+        backend.drawMeshTasksIndirect(shader, commandBuffer, 0, regionCount);
         timing.marker();
         timing.tick();
-        GL45C.glBindSampler(0, 0);
-        GL45C.glBindSampler(1, 0);
+
+        backend.unbindTexture(0);
+        backend.unbindTexture(1);
     }
 
     public void delete() {
