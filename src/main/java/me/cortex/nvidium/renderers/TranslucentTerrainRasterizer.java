@@ -21,6 +21,7 @@ public class TranslucentTerrainRasterizer extends Phase {
     public TranslucentTerrainRasterizer(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
+                .named("terrain_translucent")
                 .addSource(TASK, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TRANSLUCENT_TASK)))
                 .addSource(MESH, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TRANSLUCENT_MESH)))
                 .addSource(

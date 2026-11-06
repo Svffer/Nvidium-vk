@@ -34,8 +34,12 @@ import net.neoforged.neoforge.common.NeoForge;
  *   nvidium.bench.maxWarmup upper bound for the warm-up in seconds (default 600)
  *   nvidium.bench.duration  seconds to measure (default 60)
  *   nvidium.bench.pos       "x,y,z,yaw,pitch" — default: spawn XZ, y=110, yaw 45, pitch 20
+ *   nvidium.bench.f3        show the F3 overlay while measuring, so the screenshot carries the nvidium statistics
+ *   nvidium.bench.stress    during warm-up: resize the window (5 s), restore it (9 s), toggle fullscreen on
+ *                           (13 s) and off (17 s), reload resource packs (21 s) — swapchain and render-target
+ *                           recreation plus a full shader/renderer reload (plan M6)
  *
- * When measuring starts a screenshot of the main render target is written to
+ * One second into measuring a screenshot of the main render target is written to
  * {@code screenshots/bench-<label>-rd<n>.png}, so runs on different backends can be compared visually.
  */
 public final class BenchHarness {
@@ -57,6 +61,10 @@ public final class BenchHarness {
     private final long warmupNs = Long.getLong("nvidium.bench.warmup", 45) * NS;
     private final long maxWarmupNs = Long.getLong("nvidium.bench.maxWarmup", 600) * NS;
     private final long durationNs = Long.getLong("nvidium.bench.duration", 60) * NS;
+    private final boolean stress = Boolean.getBoolean("nvidium.bench.stress");
+    private final boolean f3 = Boolean.getBoolean("nvidium.bench.f3");
+    private boolean screenshotTaken;
+    private int stressStep;
     private static final long STABLE_NS = 5 * NS;
     private int lastChunkCount = -1;
     private long chunkCountChangedNs;
@@ -105,6 +113,9 @@ public final class BenchHarness {
                 Nvidium.LOGGER.info("[bench] level ready, position '{}', warming up {}s", position, warmupNs / NS);
             }
             case WARMUP -> {
+                if (stress) {
+                    stressStep(mc, (now - stateStartNs) / NS);
+                }
                 if (now - lastTeleportNs > NS) {
                     runCommands(mc.getSingleplayerServer(), "tp @a " + position);
                     lastTeleportNs = now;
@@ -122,7 +133,9 @@ public final class BenchHarness {
                     lastFrameNs = 0;
                     warmupTookNs = now - stateStartNs;
                     enter(State.MEASURE, now);
-                    screenshot(mc);
+                    if (f3) {
+                        mc.debugEntries.setOverlayVisible(true);
+                    }
                     Nvidium.LOGGER.info(
                             "[bench] measuring {}s (warm-up took {}s, {} chunks loaded{}; focused={} paused={})",
                             durationNs / NS,
@@ -134,6 +147,10 @@ public final class BenchHarness {
                 }
             }
             case MEASURE -> {
+                if (!screenshotTaken && now - stateStartNs >= NS) { // a frame or two after the overlay toggled
+                    screenshotTaken = true;
+                    screenshot(mc);
+                }
                 if (now - stateStartNs >= durationNs) {
                     enter(State.DONE, now);
                     report(mc);
@@ -152,6 +169,36 @@ public final class BenchHarness {
             frameNs[frameCount++] = now - lastFrameNs;
         }
         lastFrameNs = now;
+    }
+
+    /** One action per step at 5, 9, 13, 17 and 21 s of warm-up; `stressStep` counts the ones already done. */
+    private void stressStep(Minecraft mc, long elapsedS) {
+        long[] at = {5, 9, 13, 17, 21};
+        if (stressStep >= at.length || elapsedS < at[stressStep]) return;
+        var window = mc.getWindow();
+        switch (stressStep++) {
+            case 0 -> {
+                Nvidium.LOGGER.info("[bench] stress: resize to 1200x700");
+                window.setWindowed(1200, 700);
+            }
+            case 1 -> {
+                Nvidium.LOGGER.info("[bench] stress: resize back to 1600x900");
+                window.setWindowed(1600, 900);
+            }
+            case 2 -> {
+                Nvidium.LOGGER.info("[bench] stress: fullscreen on");
+                window.toggleFullScreen(); // applied by Minecraft.updateFullscreenIfChanged on the next frame
+            }
+            case 3 -> {
+                Nvidium.LOGGER.info("[bench] stress: fullscreen off");
+                window.toggleFullScreen();
+            }
+            case 4 -> {
+                Nvidium.LOGGER.info("[bench] stress: reload resource packs");
+                mc.reloadResourcePacks();
+            }
+            default -> {}
+        }
     }
 
     private void screenshot(Minecraft mc) {

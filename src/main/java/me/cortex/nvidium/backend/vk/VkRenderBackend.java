@@ -182,7 +182,9 @@ public final class VkRenderBackend implements IRenderBackend, AutoCloseable {
     @Override
     public IClientMappedBuffer createClientMappedBuffer(long size) {
         pollReleases();
-        return new VkClientMappedBuffer(allocator.createHostBuffer(size, true), this::release);
+        VkAllocator.Allocation allocation = allocator.createHostBuffer(size, true);
+        ctx.name(VK12.VK_OBJECT_TYPE_BUFFER, allocation.vkBuffer(), "nvidium host buffer " + (size >> 10) + " KiB");
+        return new VkClientMappedBuffer(allocation, this::release);
     }
 
     @Override
@@ -204,6 +206,7 @@ public final class VkRenderBackend implements IRenderBackend, AutoCloseable {
                     size >> 20);
             allocation = allocator.createDeviceBufferAnywhere(size);
         }
+        ctx.name(VK12.VK_OBJECT_TYPE_BUFFER, allocation.vkBuffer(), "nvidium device buffer " + (size >> 10) + " KiB");
         return new VkDeviceOnlyBuffer(allocation, this::release);
     }
 

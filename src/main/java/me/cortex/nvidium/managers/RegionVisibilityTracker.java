@@ -23,6 +23,7 @@ public class RegionVisibilityTracker {
     public RegionVisibilityTracker(IRenderBackend backend, DownloadTaskStream downStream, int maxRegions) {
         this.backend = backend;
         this.shader = backend.createShader()
+                .named("region_query")
                 .addSource(MESH, ShaderLoader.parse(backend.shaderSource(NvidiumShader.REGION_QUERY_MESH)))
                 .addSource(FRAGMENT, ShaderLoader.parse(backend.shaderSource(NvidiumShader.REGION_QUERY_FRAG)))
                 .compile();

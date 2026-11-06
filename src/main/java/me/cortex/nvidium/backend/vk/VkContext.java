@@ -57,6 +57,11 @@ public final class VkContext {
         return encoderAccess().nvidium$commandBuffer();
     }
 
+    /** Debug name for a Vulkan object (RenderDoc, validation messages); a no-op unless Mojang's debug labels are on. */
+    public void name(int objectType, long handle, String label) {
+        device.instance().debug().setObjectName(vkDevice(), objectType, handle, label);
+    }
+
     /** Index of the submit being recorded (Mojang increments it once per frame in {@code submit()}). */
     public long currentSubmitIndex() {
         return encoderAccess().nvidium$getCurrentSubmitIndex();

@@ -20,6 +20,7 @@ public class TemporalTerrainRasterizer extends Phase {
     public TemporalTerrainRasterizer(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
+                .named("terrain_temporal")
                 .addSource(TASK, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TEMPORAL_TASK)))
                 .addSource(MESH, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TERRAIN_MESH)))
                 .addSource(FRAGMENT, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TERRAIN_FRAG)))

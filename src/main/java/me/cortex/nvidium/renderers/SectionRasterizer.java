@@ -13,6 +13,7 @@ public class SectionRasterizer extends Phase {
     public SectionRasterizer(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
+                .named("section_raster")
                 .addSource(TASK, ShaderLoader.parse(backend.shaderSource(NvidiumShader.SECTION_RASTER_TASK)))
                 .addSource(MESH, ShaderLoader.parse(backend.shaderSource(NvidiumShader.SECTION_RASTER_MESH)))
                 .addSource(FRAGMENT, ShaderLoader.parse(backend.shaderSource(NvidiumShader.SECTION_RASTER_FRAG)))

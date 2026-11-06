@@ -14,6 +14,7 @@ public class RegionRasterizer extends Phase {
     public RegionRasterizer(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
+                .named("region_raster")
                 .addSource(MESH, ShaderLoader.parse(backend.shaderSource(NvidiumShader.REGION_RASTER_MESH)))
                 .addSource(FRAGMENT, ShaderLoader.parse(backend.shaderSource(NvidiumShader.REGION_RASTER_FRAG)))
                 .compile();

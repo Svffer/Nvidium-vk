@@ -13,6 +13,7 @@ public class CmdBufferBuilder extends Phase {
     public CmdBufferBuilder(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
+                .named("command_buffer_builder")
                 .addSource(COMPUTE, ShaderLoader.parse(backend.shaderSource(NvidiumShader.COMMAND_BUFFER_BUILDER)))
                 .compile();
     }

@@ -11,6 +11,7 @@
     "minecraft.gl.GlCommandEncoderAccessor",
     "minecraft.gl.MixinGlDevice",
     "minecraft.vk.MixinVulkanBackend",
+    "minecraft.vk.MixinVulkanDevice",
     "minecraft.vk.VulkanCommandEncoderAccessor",
     "minecraft.vk.VulkanRenderPassAccessor",
     "sodium.MixinChunkBuildOutput",

@@ -13,6 +13,7 @@ public class SortRegionSectionPhase extends Phase {
     public SortRegionSectionPhase(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
+                .named("region_section_sorter")
                 .addSource(COMPUTE, ShaderLoader.parse(backend.shaderSource(NvidiumShader.REGION_SECTION_SORTER)))
                 .compile();
     }

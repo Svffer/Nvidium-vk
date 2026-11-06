@@ -93,6 +93,7 @@ final class VkPipelineFactory implements AutoCloseable {
                     VK12.vkCreateDescriptorSetLayout(ctx.vkDevice(), setInfo, null, pSetLayout),
                     "vkCreateDescriptorSetLayout");
             this.descriptorSetLayout = pSetLayout.get(0);
+            ctx.name(VK12.VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, descriptorSetLayout, "nvidium descriptor set layout");
 
             VkPipelineLayoutCreateInfo layoutInfo = VkPipelineLayoutCreateInfo.calloc(stack)
                     .sType$Default()
@@ -101,6 +102,7 @@ final class VkPipelineFactory implements AutoCloseable {
             VkAllocator.check(
                     VK12.vkCreatePipelineLayout(ctx.vkDevice(), layoutInfo, null, pLayout), "vkCreatePipelineLayout");
             this.pipelineLayout = pLayout.get(0);
+            ctx.name(VK12.VK_OBJECT_TYPE_PIPELINE_LAYOUT, pipelineLayout, "nvidium pipeline layout");
         }
     }
 
@@ -214,6 +216,11 @@ final class VkPipelineFactory implements AutoCloseable {
             VkAllocator.check(
                     VK12.vkCreateGraphicsPipelines(ctx.vkDevice(), 0, info, null, pPipeline),
                     "vkCreateGraphicsPipelines(" + shader.name() + ", " + state + ")");
+            ctx.name(
+                    VK12.VK_OBJECT_TYPE_PIPELINE,
+                    pPipeline.get(0),
+                    "nvidium " + shader.name() + (state.blend() ? " blend" : "")
+                            + (state.occlusion() ? " occlusion" : ""));
             return pPipeline.get(0);
         }
     }
@@ -233,6 +240,7 @@ final class VkPipelineFactory implements AutoCloseable {
             VkAllocator.check(
                     VK12.vkCreateComputePipelines(ctx.vkDevice(), 0, info, null, pPipeline),
                     "vkCreateComputePipelines(" + shader.name() + ")");
+            ctx.name(VK12.VK_OBJECT_TYPE_PIPELINE, pPipeline.get(0), "nvidium " + shader.name());
             return pPipeline.get(0);
         }
     }

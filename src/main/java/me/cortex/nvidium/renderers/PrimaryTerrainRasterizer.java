@@ -20,6 +20,7 @@ public class PrimaryTerrainRasterizer extends Phase {
     public PrimaryTerrainRasterizer(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
+                .named("terrain")
                 .addSource(TASK, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TERRAIN_TASK)))
                 .addSource(MESH, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TERRAIN_MESH)))
                 .addSource(FRAGMENT, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TERRAIN_FRAG)))

@@ -50,6 +50,7 @@ final class VkTimestampQuerySet extends TrackedObject implements ITimestampQuery
             for (int i = 0; i < POOLS; i++) {
                 VkAllocator.check(VK12.vkCreateQueryPool(ctx.vkDevice(), info, null, pPool), "vkCreateQueryPool");
                 pools[i] = pPool.get(0);
+                ctx.name(VK12.VK_OBJECT_TYPE_QUERY_POOL, pools[i], "nvidium timestamps " + i);
                 VK12.vkResetQueryPool(ctx.vkDevice(), pools[i], 0, QUERIES_PER_POOL);
             }
         }

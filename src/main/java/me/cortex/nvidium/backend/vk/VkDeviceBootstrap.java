@@ -106,6 +106,7 @@ public final class VkDeviceBootstrap {
             VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV.REPRESENTATIVEFRAGMENTTEST);
 
     private static @Nullable VkDeviceCapabilities capabilities;
+    private static @Nullable VkRenderBackend backend;
 
     /** The capabilities recorded for the live Vulkan device, or {@code null} on other backends. */
     public static @Nullable VkDeviceCapabilities capabilities() {
@@ -202,6 +203,19 @@ public final class VkDeviceBootstrap {
         }
     }
 
+    /**
+     * Called by the mixin at the head of {@code VulkanDevice.close()}: queues the backend's teardown into the
+     * encoder's destruction queue, which Mojang drains right after (plan M6, "world unload without leaks").
+     */
+    public static void onDeviceClosing() {
+        if (backend != null) {
+            backend.close();
+            backend = null;
+            Nvidium.backend = null;
+            Nvidium.IS_ENABLED = false;
+        }
+    }
+
     private static VkDeviceCapabilities.MeshShaderLimits queryMeshLimits(
             VulkanPhysicalDevice physicalDevice, MemoryStack stack) {
         VkPhysicalDeviceMeshShaderPropertiesEXT mesh =
@@ -252,7 +266,8 @@ public final class VkDeviceBootstrap {
             if (Boolean.getBoolean("nvidium.vkSelfTest")) {
                 VkSelfTest.run(device, caps);
             }
-            Nvidium.initBackend(new VkRenderBackend(ctx, caps));
+            backend = new VkRenderBackend(ctx, caps);
+            Nvidium.initBackend(backend);
         } else {
             Nvidium.LOGGER.warn(
                     "Not all requirements met for nvidium on Vulkan, missing: {}{}",

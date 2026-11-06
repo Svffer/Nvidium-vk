@@ -114,7 +114,7 @@ public final class VkShader extends TrackedObject implements IShader {
             this.processor = processor;
         }
 
-        /** Optional label used in compile errors and debug tooling. */
+        @Override
         public Builder named(String name) {
             this.name = name;
             return this;
@@ -139,7 +139,9 @@ public final class VkShader extends TrackedObject implements IShader {
                             e.getKey(),
                             e.getValue());
                     try {
-                        modules.put(e.getKey(), VkSpirvCompiler.createShaderModule(ctx.vkDevice(), spirv));
+                        long module = VkSpirvCompiler.createShaderModule(ctx.vkDevice(), spirv);
+                        modules.put(e.getKey(), module);
+                        ctx.name(VK12.VK_OBJECT_TYPE_SHADER_MODULE, module, "nvidium " + name + "." + e.getKey());
                     } finally {
                         MemoryUtil.memFree(spirv);
                     }
