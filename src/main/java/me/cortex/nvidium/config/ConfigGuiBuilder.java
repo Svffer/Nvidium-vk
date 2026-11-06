@@ -47,7 +47,7 @@ public class ConfigGuiBuilder implements ConfigEntryPoint {
         }
 
         nvidiumOptionPage.addOption(
-                builder.createIntegerOption(Identifier.parse("nvidium:region_keep_distace"))
+                builder.createIntegerOption(Identifier.parse("nvidium:region_keep_distance"))
                         .setName(Component.translatable("nvidium.options.region_keep_distance.name"))
                         .setTooltip(Component.translatable("nvidium.options.region_keep_distance.tooltip"))
                         .setImpact(OptionImpact.VARIES)

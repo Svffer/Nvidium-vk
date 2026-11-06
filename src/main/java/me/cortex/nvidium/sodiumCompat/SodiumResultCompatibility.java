@@ -90,7 +90,7 @@ public class SodiumResultCompatibility {
         return count / 4;
     }
 
-    //Everything is /6*4 cause its in indices and we want verticies
+    //Everything is /6*4 cause its in indices and we want vertices
     private static void packageSectionGeometry(int formatSize, NativeBuffer output, int[] outOffsets, ChunkBuildOutput result, Vector3i min, Vector3i max) {
         int offset = 0;
         long outPtr = MemoryUtil.memAddress(output.getDirectBuffer());

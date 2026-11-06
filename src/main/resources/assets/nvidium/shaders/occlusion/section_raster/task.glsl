@@ -45,8 +45,8 @@ void main() {
     atomicAdd(statistics_buffer, 1);
     #endif
 
-    //FIXME: It might actually be more efficent to just upload the region data straight into the ubo
-    uint32_t offset = regionIndicies[gl_WorkGroupID.x];
+    //FIXME: It might actually be more efficient to just upload the region data straight into the ubo
+    uint32_t offset = regionIndices[gl_WorkGroupID.x];
     Region data = regionData[offset];
     int count = unpackRegionCount(data)+1;
 

@@ -6,7 +6,7 @@ taskNV out Task {
     uint quadCount;
     uint transformationId;
 
-    //Binary search indexs and data
+    //Binary search indices and data
     uvec4 binIa;
     uvec4 binIb;
     uvec4 binVa;
@@ -29,7 +29,7 @@ void putBinData(inout uint idx, inout uint lastIndex, uint offset, uint nextOffs
 //Populate the tasks with respect to the chunk face visibility
 void populateTasks(ivec3 relChunkPos, uvec4 ranges) {
     //TODO: make the ranges cumulate up, this means that we can fit much much more data per chunk
-    // as the range will be spred across all the offsets since they are not the absolute offset
+    // as the range will be spread across all the offsets since they are not the absolute offset
 
     //Hacky thing to render all block faces if the flag is not set
     if (!useBlockFaceCulling()) {
@@ -80,7 +80,7 @@ void populateTasks(ivec3 relChunkPos, uvec4 ranges) {
     }
     fr += (ranges.z>>16)&0xFFFF;
 
-    //TODO: Put unsigned quads at the begining? since it should be cheaper
+    //TODO: Put unsigned quads at the beginning? since it should be cheaper
     putBinData(idx, lastIndex, fr, fr + (ranges.w&0xFFFF));
 
 

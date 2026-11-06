@@ -1,0 +1,14 @@
+# typos (https://github.com/crate-ci/typos) configuration.
+# Only project vocabulary goes here, with a reason; real misspellings get fixed in the code.
+
+[files]
+extend-exclude = [
+    "docs/bench-results.jsonl",   # machine-generated benchmark records
+]
+
+[default.extend-identifiers]
+cpy = "cpy"       # camera position y, sibling of cpx / cpz (SodiumResultCompatibility)
+sizez = "sizez"   # z-axis field of a packed header, sibling of offsetz (scene.glsl comment)
+
+[default.extend-words]
+lod = "lod"   # level of detail (Distant Horizons "LOD radius"), not "load"

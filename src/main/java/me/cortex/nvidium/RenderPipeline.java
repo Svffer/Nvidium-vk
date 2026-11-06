@@ -55,7 +55,7 @@ public class RenderPipeline {
                     4*4*4 + // mat4      MVPInv (Optional)
                     4*4 +   // ivec4     chunkPosition
                     4*4 +   // vec4      subchunkOffset
-                    8 +     // uint16_t  *regionIndicies
+                    8 +     // uint16_t  *regionIndices
                     8 +     // Region    *regionData
                     8 +     // Section   *sectionData
                     8 +     // uint8_t   *regionVisibility
@@ -184,7 +184,7 @@ public class RenderPipeline {
 
     //TODO FIXME: regions that where in frustum but are now out of frustum must have the visibility data cleared
     // this is due to funny issue of pain where the section was "visible" last frame cause it didnt get ticked
-    //NOTE: can use any of the command list rendering commands to basicly draw X indirects using the same shader, thus allowing for terrain to be rendered very efficently
+    //NOTE: can use any of the command list rendering commands to basically draw X indirects using the same shader, thus allowing for terrain to be rendered very efficiently
     public void renderFrame(TerrainRenderPass pass, Viewport viewport, FogParameters fogParameters, ChunkRenderMatrices crm, double px, double py, double pz, GpuSampler terrainSampler) {
         if (sectionManager.getRegionManager().regionCount() == 0) return;//Dont render anything if there is nothing to render
 
@@ -224,7 +224,7 @@ public class RenderPipeline {
         //Enqueue all the visible regions
         {
 
-            //The region data indicies is located at the end of the sceneUniform
+            //The region data indices is located at the end of the sceneUniform
             IntSortedSet regions = new IntAVLTreeSet();
             for (int i = 0; i < rm.maxRegionIndex(); i++) {
                 if (!rm.regionExists(i)) continue;
@@ -297,7 +297,7 @@ public class RenderPipeline {
             addr += 16;
             new Vector4f(delta,0).getToAddress(addr);//Subchunk offset (note, delta is already negated)
             addr += 16;
-            MemoryUtil.memPutLong(addr, sceneUniform.getDeviceAddress() + SCENE_SIZE);//Put in the location of the region indexs
+            MemoryUtil.memPutLong(addr, sceneUniform.getDeviceAddress() + SCENE_SIZE);//Put in the location of the region indices
             addr += 8;
             MemoryUtil.memPutLong(addr, sectionManager.getRegionManager().getRegionBufferAddress());
             addr += 8;

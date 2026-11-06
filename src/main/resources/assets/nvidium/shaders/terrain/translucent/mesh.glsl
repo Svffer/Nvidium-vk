@@ -48,7 +48,7 @@ layout(location=1) out Interpolants {
 } OUT[];
 #endif
 
-void emitQuadIndicies() {
+void emitQuadIndices() {
     uint primBase = gl_LocalInvocationID.x * 6;
     uint vertexBase = gl_LocalInvocationID.x<<2;
     gl_PrimitiveIndicesNV[primBase+0] = vertexBase+0;
@@ -158,9 +158,9 @@ void main() {
         return;
     }
 
-    emitQuadIndicies();
+    emitQuadIndices();
 
-    //Each pair of meshlet invokations emits 4 vertices each and 2 primative each
+    //Each pair of meshlet invocations emits 4 vertices each and 2 primitive each
     uint id;
     #ifdef TRANSLUCENCY_SORTING_SODIUM
     if (translucencyIndex == -1) { // If no translucency data, fallback to quad order
@@ -204,7 +204,7 @@ void main() {
 
     if (gl_LocalInvocationID.x == 0) {
         //Remaining quads in workgroup
-        gl_PrimitiveCountNV = min(uint(int(quadCount)-int(gl_WorkGroupID.x<<5))<<1, 64);//2 primatives per quad
+        gl_PrimitiveCountNV = min(uint(int(quadCount)-int(gl_WorkGroupID.x<<5))<<1, 64);//2 primitives per quad
     }
 
 }

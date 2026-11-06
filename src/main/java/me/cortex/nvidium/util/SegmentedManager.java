@@ -28,7 +28,7 @@ public class SegmentedManager {
         return totalSize;
     }
     /*
-    public long allocFromLargest(int size) {//Allocates from the largest avalible block, this is useful for expanding later on
+    public long allocFromLargest(int size) {//Allocates from the largest available block, this is useful for expanding later on
 
     }*/
 
@@ -89,7 +89,7 @@ public class SegmentedManager {
             }
         }
 
-        //If there is a next element it is guarenteed to either be the next block, or indicate that there is
+        //If there is a next element it is guaranteed to either be the next block, or indicate that there is
         // a block that needs to be merged into
         if (iter.hasNext()) {
             long nextSlot = iter.nextLong();

@@ -1,7 +1,7 @@
 #define MESH_WORKLOAD_PER_INVOCATION 32
 
 taskNV out Task {
-    //Very compacted search indexs and data
+    //Very compacted search indices and data
     uvec4 binStarts;
     uvec4 binOffsets;
 

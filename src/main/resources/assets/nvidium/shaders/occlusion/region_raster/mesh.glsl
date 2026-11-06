@@ -21,7 +21,7 @@ const uint PILUTC[] = {2, 0, 4, 5, 1, 3, 7, 2};
 const uint PILUTD[] = {1, 2, 0, 5, 5, 1, 7, 7};
 
 const uint PILUTE[] = {6, 2, 3, 7};
-void emitIndicies(uint batchIdx, int visIndex) {
+void emitIndices(uint batchIdx, int visIndex) {
     uint tid = gl_LocalInvocationID.x % 8;
     uint baseIdx = batchIdx * 36;
     uint baseVtx = batchIdx * 8;
@@ -32,7 +32,7 @@ void emitIndicies(uint batchIdx, int visIndex) {
     gl_MeshPrimitivesNV[batchIdx * 12 + tid].gl_PrimitiveID = visIndex;
 }
 
-void emitParital(uint batchIdx, int visIndex) {
+void emitPartial(uint batchIdx, int visIndex) {
     uint tid = gl_LocalInvocationID.x % 8;
     uint baseIdx = batchIdx * 36;
     uint baseVtx = batchIdx * 8;
@@ -54,22 +54,22 @@ void main() {
     if (visibilityIndex >= uint(regionCount)) {
         if (tid == 0) regionVisibility[visibilityIndex] = uint8_t(0);
         gl_MeshVerticesNV[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
-        emitIndicies(batchIdx, 0);
-        if (tid < 4) emitParital(batchIdx, 0);
+        emitIndices(batchIdx, 0);
+        if (tid < 4) emitPartial(batchIdx, 0);
         if (gl_LocalInvocationID.x == 0) gl_PrimitiveCountNV = 48;
         return;
     }
 
-    //FIXME: It might actually be more efficent to just upload the region data straight into the ubo
+    //FIXME: It might actually be more efficient to just upload the region data straight into the ubo
     // this remove an entire level of indirection and also puts region data in the very fast path
-    Region data = regionData[regionIndicies[visibilityIndex]];//fetch the region data
+    Region data = regionData[regionIndices[visibilityIndex]];//fetch the region data
 
     //If the region metadata was empty, return
     if (data.a == uint64_t(-1)) {
         if (tid == 0) regionVisibility[visibilityIndex] = uint8_t(0);
         gl_MeshVerticesNV[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
-        emitIndicies(batchIdx, int(visibilityIndex));
-        if (tid < 4) emitParital(batchIdx, int(visibilityIndex));
+        emitIndices(batchIdx, int(visibilityIndex));
+        if (tid < 4) emitPartial(batchIdx, int(visibilityIndex));
         if (gl_LocalInvocationID.x == 0) gl_PrimitiveCountNV = 48;
         return;
     }
@@ -87,9 +87,9 @@ void main() {
     gl_MeshVerticesNV[gl_LocalInvocationID.x].gl_Position = MVP*(getRegionTransformation(data)*vec4(corner, 1.0));
 
 
-    emitIndicies(batchIdx, int(visibilityIndex));
+    emitIndices(batchIdx, int(visibilityIndex));
     if (tid < 4) {
-        emitParital(batchIdx, int(visibilityIndex));
+        emitPartial(batchIdx, int(visibilityIndex));
 
         if (tid == 0) {
             bool cameraInRegion = all(lessThan(start*16+subchunkOffset.xyz, vec3(ADD_SIZE*16))) && all(lessThan(vec3(-ADD_SIZE*16), end*16+subchunkOffset.xyz));

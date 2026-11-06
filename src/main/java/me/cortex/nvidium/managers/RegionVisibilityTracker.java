@@ -34,10 +34,10 @@ public class RegionVisibilityTracker {
         }
     }
 
-    private int fram = 0;
+    private int frame = 0;
     //This is kind of evil in the fact that it just reuses the visibility buffer
     public void computeVisibility(int regionCount, IBuffer regionVisibilityBuffer, short[] regionMapping) {
-        fram++;
+        frame++;
         backend.drawMeshTasks(shader, 0, (regionCount + 3) / 4);
         backend.barrier(Barrier.SHADER_STORAGE);
         downStream.download(regionVisibilityBuffer, 0, regionCount, ptr -> {
@@ -45,7 +45,7 @@ public class RegionVisibilityTracker {
                 if (MemoryUtil.memGetByte(ptr + i) == 1) {
                     //System.out.println(regionMapping[i] + " was visible");
                     frustum[regionMapping[i]]++;
-                    visible[regionMapping[i]] = fram;
+                    visible[regionMapping[i]] = frame;
                 } else {
                     //System.out.println(regionMapping[i] + " was not visible");
                     frustum[regionMapping[i]]++;

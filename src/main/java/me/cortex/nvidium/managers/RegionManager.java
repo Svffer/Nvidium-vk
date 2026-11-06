@@ -69,7 +69,7 @@ public class RegionManager {
             if (region.isRemoved) {
                 if (this.regions[region.id] == null) {
                     //There is no region that has replaced the old one at the id so we need to clear the region metadata
-                    // to prevent the gpu from rendering arbitary data
+                    // to prevent the gpu from rendering arbitrary data
                     long regionUpload = this.uploadStream.upload(this.regionBuffer, (long) region.id * META_SIZE, META_SIZE);
                     MemoryUtil.memSet(regionUpload, -1, META_SIZE);
 

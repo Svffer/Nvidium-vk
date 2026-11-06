@@ -1,4 +1,4 @@
-package me.cortex.nvidium.mixin.minecraft;
+package me.cortex.nvidium.mixin.minecraft.gl;
 
 import com.mojang.blaze3d.shaders.GpuDebugOptions;
 import com.mojang.blaze3d.shaders.ShaderSource;

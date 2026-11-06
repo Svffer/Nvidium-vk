@@ -11,7 +11,7 @@ layout(local_size_x = (SORTING_NETWORK_SIZE>>1), local_size_y = 1 , local_size_z
 void populateSection(uint regionId, uint8_t sectionId) {
     ivec4 sectionHeader = sectionData[(regionId<<8)|uint(sectionId)].header;
     if (sectionEmpty(sectionHeader)) {
-        //The section doesnt exist so nuke it from existance
+        //The section doesnt exist so nuke it from existence
         putSortingData(sectionId, -999999999.0f);
     } else {
         ivec3 chunk = ivec3(sectionHeader.xyz)>>8;

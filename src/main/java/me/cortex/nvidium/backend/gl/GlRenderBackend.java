@@ -13,7 +13,7 @@ import me.cortex.nvidium.backend.gl.buffers.GlClientMappedBuffer;
 import me.cortex.nvidium.backend.gl.buffers.GlDeviceOnlyBuffer;
 import me.cortex.nvidium.backend.gl.buffers.GlSparseBuffer;
 import me.cortex.nvidium.mixin.minecraft.CommandEncoderAccessor;
-import me.cortex.nvidium.mixin.minecraft.GlCommandEncoderAccessor;
+import me.cortex.nvidium.mixin.minecraft.gl.GlCommandEncoderAccessor;
 import net.minecraft.util.Util;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL33C;

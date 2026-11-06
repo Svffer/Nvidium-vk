@@ -40,7 +40,7 @@ public class NvidiumWorldRenderer {
     private long max_geometry_memory;
     private long last_sample_time;
 
-    //Note: the reason that asyncChunkTracker is passed in as an already constructed object is cause of the amount of argmuents it takes to construct it
+    //Note: the reason that asyncChunkTracker is passed in as an already constructed object is cause of the amount of arguments it takes to construct it
     public NvidiumWorldRenderer() {
         this.device = Nvidium.backend;
         if (this.device == null) {

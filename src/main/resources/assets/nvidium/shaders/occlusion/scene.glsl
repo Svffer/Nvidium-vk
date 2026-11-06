@@ -24,7 +24,7 @@ struct Section {
     //Header.z -> 0-3=offsety 4-7=sizey 8-15=chunk y
     //Header.w -> quad offset
     ivec4 renderRanges;
-    int   tranlucentQuadCount;
+    int   translucentQuadCount;
     int   translucencyDataIdx;
 };
 
@@ -60,7 +60,7 @@ bool sectionEmpty(ivec4 header) {
 
 
 layout(std140, binding=0) uniform SceneData {
-    //Need to basicly go in order of alignment
+    //Need to basically go in order of alignment
     //align(16)
     mat4 MVP;
     #ifdef RENDER_FOG
@@ -71,7 +71,7 @@ layout(std140, binding=0) uniform SceneData {
 
     //vec4  subChunkPosition;//The subChunkTranslation is already done inside the MVP
     //align(8)
-    readonly restrict uint16_t *regionIndicies;//Pointer to block of memory at the end of the SceneData struct, also mapped to be a uniform
+    readonly restrict uint16_t *regionIndices;//Pointer to block of memory at the end of the SceneData struct, also mapped to be a uniform
     readonly restrict Region *regionData;
     restrict Section *sectionData;
     //NOTE: for the following, can make it so that region visibility actually uses section visibility array
@@ -110,7 +110,7 @@ layout(std140, binding=0) uniform SceneData {
     uint flags;
 
     //align(2)
-    uint16_t regionCount;//Number of regions in regionIndicies
+    uint16_t regionCount;//Number of regions in regionIndices
     //align(1)
     uint8_t frameId;
 };

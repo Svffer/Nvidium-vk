@@ -128,7 +128,7 @@ void main() {
     bool peerDraw = true;
 
 #ifdef CULL_DEGENERATE_TRIANGLES
-    { //Compute the bounding pixels of the current triangle in the quad. note, vertex 0 and 2 are the common verticies
+    { //Compute the bounding pixels of the current triangle in the quad. note, vertex 0 and 2 are the common vertices
         vec2 ssmin = ((pVc.xy/pVc.w)+1)*screenSize;
         vec2 ssmax = ssmin;
 
@@ -145,7 +145,7 @@ void main() {
         float degenBias = 0.01f;
         draw = all(notEqual(round(tmin-degenBias),round(tmax+degenBias)));
 
-        // Exchage results with neighbor
+        // Exchange results with neighbor
         peerDraw = subgroupShuffleXor(draw, 1u);
 
         // Abort if quad got culled

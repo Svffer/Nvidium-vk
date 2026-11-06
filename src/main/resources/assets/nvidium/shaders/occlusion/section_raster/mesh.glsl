@@ -32,7 +32,7 @@ const uint PILUTD[] = {1, 2, 0, 5, 5, 1, 7, 7};
 
 const uint PILUTE[] = {6, 2, 3, 7};
 
-void emitIndicies(uint batchIdx, int visIndex) {
+void emitIndices(uint batchIdx, int visIndex) {
     uint tid = gl_LocalInvocationID.x % 8;
     uint baseIdx = batchIdx * 36;
     uint baseVtx = batchIdx * 8;
@@ -42,7 +42,7 @@ void emitIndicies(uint batchIdx, int visIndex) {
     gl_PrimitiveIndicesNV[baseIdx + ((tid<<2)|3)] = PILUTD[tid] + baseVtx;
     gl_MeshPrimitivesNV[batchIdx * 12 + tid].gl_PrimitiveID = visIndex;
 }
-void emitParital(uint batchIdx, int visIndex) {
+void emitPartial(uint batchIdx, int visIndex) {
     uint tid = gl_LocalInvocationID.x % 8;
     uint baseIdx = batchIdx * 36;
     uint baseVtx = batchIdx * 8;
@@ -65,8 +65,8 @@ void main() {
     if (currentSectionIdx >= sectionCount) {
         if (tid == 0) sectionVisibility[int(_visOutBase|currentSectionIdx)] = uint8_t(0);
         gl_MeshVerticesNV[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
-        emitIndicies(batchIdx, 0);
-        if (tid < 4) emitParital(batchIdx, 0);
+        emitIndices(batchIdx, 0);
+        if (tid < 4) emitPartial(batchIdx, 0);
         if (gl_LocalInvocationID.x == 0) gl_PrimitiveCountNV = 48;
         return;
     }
@@ -74,13 +74,13 @@ void main() {
     int visibilityIndex = int(_visOutBase|currentSectionIdx);
 
     uint8_t lastData = sectionVisibility[visibilityIndex];
-    // this is almost 100% guarenteed not needed afaik
+    // this is almost 100% guaranteed not needed afaik
     //barrier();
 
     ivec4 header = sectionData[_offset|currentSectionIdx].header;
     //If the section header was empty or the hide section bit is set, return
 
-    //NOTE: technically this has the infinitly small probability of not rendering a block if the block is located at
+    //NOTE: technically this has the infinitely small probability of not rendering a block if the block is located at
     // 0,0,0 the only block in the chunk and the first thing in the buffer
     // to fix, also check that the ranges are null
     if (sectionEmpty(header) || (header.y&(1<<17)) != 0) {
@@ -88,8 +88,8 @@ void main() {
             sectionVisibility[visibilityIndex] = uint8_t(0);
         }
         gl_MeshVerticesNV[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
-        emitIndicies(batchIdx, visibilityIndex);
-        if (tid < 4) emitParital(batchIdx, visibilityIndex);
+        emitIndices(batchIdx, visibilityIndex);
+        if (tid < 4) emitPartial(batchIdx, visibilityIndex);
         if (gl_LocalInvocationID.x == 0) gl_PrimitiveCountNV = 48;
         return;
     }
@@ -111,9 +111,9 @@ void main() {
 
     int prim_payload = (visibilityIndex<<8)|int(((uint(lastData))<<1)&0xff)|1;
 
-    emitIndicies(batchIdx, prim_payload);
+    emitIndices(batchIdx, prim_payload);
     if (tid < 4) {
-        emitParital(batchIdx, prim_payload);
+        emitPartial(batchIdx, prim_payload);
     }
     if (tid == 0) {
         cornerCopy += subchunkOffset.xyz;

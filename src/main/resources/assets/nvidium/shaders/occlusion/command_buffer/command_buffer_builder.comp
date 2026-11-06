@@ -20,7 +20,7 @@ uint getReflectedTranslucentSectionId(uint sectionId) {
 }
 
 bool hasTranslucentData(uint sectionId) {
-    return sectionData[sectionId].tranlucentQuadCount > 0;
+    return sectionData[sectionId].translucentQuadCount > 0;
 }
 
 void main() {
@@ -33,7 +33,7 @@ void main() {
         return;
     }
 
-    uint baseSectionId = uint(regionIndicies[gl_WorkGroupID.x]) << 8;
+    uint baseSectionId = uint(regionIndices[gl_WorkGroupID.x]) << 8;
 
     uvec3 renderCounts = uvec3(0);
     for (uint i = 0; i < 8; i++) {
