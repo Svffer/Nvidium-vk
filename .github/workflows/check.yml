@@ -8,22 +8,22 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # betterleaks scans the whole history
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "25"
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       # glslc for the offline Vulkan shader compile (bench/compile-vk-shaders.py)
       - run: sudo apt-get update && sudo apt-get install -y glslc
 
       # Tools pinned in mise.toml (hk, betterleaks, typos, rumdl, shellcheck, ruff, ast-grep, jq, agnix)
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v3
 
       # The shader check resolves `#moj_import <sodium:...>` from the extracted Sodium jar
       - run: ./gradlew --no-daemon -q extractSodium

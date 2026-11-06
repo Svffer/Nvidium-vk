@@ -2,6 +2,7 @@
 
 [![Patreon](https://img.shields.io/badge/Patreon-support%20the%20fork-f96854?logo=patreon)](https://www.patreon.com/cw/svfr)
 [![License: LGPL-3.0](https://img.shields.io/badge/license-LGPL--3.0-blue)](LICENSE.txt)
+[![check](https://github.com/Svffer/Nvidium-vk/actions/workflows/check.yml/badge.svg)](https://github.com/Svffer/Nvidium-vk/actions/workflows/check.yml)
 
 ## What it is
 
