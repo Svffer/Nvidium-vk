@@ -1,17 +1,19 @@
 modLoader = "javafml"
 loaderVersion = "[4,)"
 license = "LGPL-3.0"
-issueTrackerURL = "https://github.com/MCRcortex/nvidium/issues"
+issueTrackerURL = "https://github.com/__GITHUB_REPO__/issues"
 
 [[mods]]
 modId = "nvidium"
 version = "${version}"
 displayName = "Nvidium"
 authors = "Cortex"
-credits = "drouarb"
+credits = "drouarb; NeoForge port and Vulkan backend: __GITHUB_OWNER__"
+displayURL = "https://github.com/__GITHUB_REPO__"
 iconFile = "assets/nvidium/nvidium.png"
 description = '''
-Replacement rendering engine for sodium
+Replacement rendering engine for Sodium (NVIDIA GPUs). NeoForge port of nvidium with an additional
+backend for Minecraft's Vulkan renderer.
 '''
 
 [modproperties.nvidium]
