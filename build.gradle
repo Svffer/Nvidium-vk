@@ -67,6 +67,10 @@ neoForge {
             if (project.hasProperty('vkSelfTest')) {
                 systemProperties.put('nvidium.vkSelfTest', 'true')
             }
+            // Compile every Vulkan shader through the runtime path on the first world render (M4)
+            if (project.hasProperty('vkShaderTest')) {
+                systemProperties.put('nvidium.vkShaderTest', 'true')
+            }
             // Khronos validation layers (needs the vulkan-validation-layers system package)
             if (project.hasProperty('vkValidation')) {
                 programArguments.add('--vulkanValidation')

@@ -1,0 +1,81 @@
+#version 460
+#moj_import <nvidium:vk/common.glsl>
+#extension GL_EXT_mesh_shader : require
+
+#moj_import <nvidium:vk/scene.glsl>
+#moj_import <nvidium:vk/occlusion/section_task_common.glsl>
+
+#define ADD_SIZE (0.1f)
+layout(local_size_x = 32) in;
+layout(triangles, max_vertices=32, max_primitives=48) out;
+
+#moj_import <nvidium:vk/occlusion/box_indices.glsl>
+
+taskPayloadSharedEXT SectionTask task;
+
+//TODO: Check if the section can be culled via fog
+void main() {
+    uint baseIdx = gl_WorkGroupID.x * 4;
+    if (baseIdx >= task.sectionCount) {
+        SetMeshOutputsEXT(0, 0);
+        return;
+    }
+    SetMeshOutputsEXT(32, 48);
+
+    uint batchIdx = gl_LocalInvocationID.x / 8;
+    uint tid = gl_LocalInvocationID.x % 8;
+    uint currentSectionIdx = baseIdx + batchIdx;
+
+    if (currentSectionIdx >= task.sectionCount) {
+        if (tid == 0) sectionVisibility[int(task._visOutBase|currentSectionIdx)] = uint8_t(0);
+        gl_MeshVerticesEXT[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
+        emitBox(batchIdx, tid, 0);
+        return;
+    }
+
+    int visibilityIndex = int(task._visOutBase|currentSectionIdx);
+
+    uint8_t lastData = sectionVisibility[visibilityIndex];
+
+    ivec4 header = sectionData[task._offset|currentSectionIdx].header;
+    //If the section header was empty or the hide section bit is set, return
+
+    //NOTE: technically this has the infinitely small probability of not rendering a block if the block is located at
+    // 0,0,0 the only block in the chunk and the first thing in the buffer
+    // to fix, also check that the ranges are null
+    if (sectionEmpty(header) || (header.y&(1<<17)) != 0) {
+        if (tid == 0) {
+            sectionVisibility[visibilityIndex] = uint8_t(0);
+        }
+        gl_MeshVerticesEXT[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
+        emitBox(batchIdx, tid, visibilityIndex);
+        return;
+    }
+
+    vec3 mins = (header.xyz&0xF)-ADD_SIZE;
+    vec3 maxs = mins+((header.xyz>>4)&0xF)+1+(ADD_SIZE*2);
+    ivec3 chunk = ivec3(header.xyz)>>8;
+    chunk.y &= 0x1ff;
+    chunk.y <<= 32-9;
+    chunk.y >>= 32-9;
+
+    ivec3 relativeChunkPos = (chunk + task.chunkShift);
+    vec3 corner = vec3(relativeChunkPos<<4);
+    vec3 cornerCopy = corner;
+
+    corner += vec3(((tid&1)==0)?mins.x:maxs.x, ((tid&4)==0)?mins.y:maxs.y, ((tid&2)==0)?mins.z:maxs.z);
+    gl_MeshVerticesEXT[gl_LocalInvocationID.x].gl_Position = (MVP*(task.regionTransform*vec4(corner, 1.0)));
+
+    int prim_payload = (visibilityIndex<<8)|int(((uint(lastData))<<1)&0xff)|1;
+
+    emitBox(batchIdx, tid, prim_payload);
+    if (tid == 0) {
+        cornerCopy += subchunkOffset.xyz;
+        vec3 minPos = mins + cornerCopy;
+        vec3 maxPos = maxs + cornerCopy;
+        bool isInSection = all(lessThan(minPos, vec3(ADD_SIZE))) && all(lessThan(vec3(-ADD_SIZE), maxPos));
+
+        //Shift and set, this gives us a bonus of having the last 8 frames as visibility history
+        sectionVisibility[visibilityIndex] = uint8_t(lastData<<1) | uint8_t(isInSection?1:0);//Inject visibility aswell
+    }
+}

@@ -1,0 +1,46 @@
+#version 460
+#moj_import <nvidium:vk/common.glsl>
+#extension GL_EXT_mesh_shader : require
+
+#moj_import <nvidium:vk/scene.glsl>
+#moj_import <nvidium:vk/terrain/translucent/task_common.glsl>
+
+layout(local_size_x=1) in;
+
+taskPayloadSharedEXT TranslucentTask task;
+
+void main() {
+    uint sectionId = uint(sectionIndices[gl_WorkGroupID.x].y) + (gl_WorkGroupID.x & 0xFFFFFF00);
+
+    task.translucencyIndex = sectionData[sectionId].translucencyDataIdx;
+
+    ivec4 header = sectionData[sectionId].header;
+    uint baseDataOffset = uint(header.w);
+    ivec3 chunk = ivec3(header.xyz)>>8;
+    chunk.y &= 0x1ff;
+    chunk.y <<= 32-9;
+    chunk.y >>= 32-9;
+    task.originAndBaseData.xyz = vec3((chunk - chunkPosition.xyz)<<4);
+
+    uint quadCount = uint(sectionData[sectionId].translucentQuadCount);
+    #ifdef TRANSLUCENCY_SORTING_QUADS
+    uint jiggle = min(quadCount>>1,(uint(frameId)&1));//Jiggle by 1 quads (either 0 or 1)
+    task.jiggle = jiggle;
+    quadCount += jiggle;
+    task.originAndBaseData.w = uintBitsToFloat(baseDataOffset - jiggle);
+    #else
+    task.originAndBaseData.w = uintBitsToFloat(baseDataOffset);
+    #endif
+    task.quadCount = quadCount;
+
+    #ifdef STATISTICS_QUADS
+    atomicAdd(statistics_buffer[2], quadCount);
+    #endif
+
+    #ifdef STATISTICS_SECTIONS
+    atomicAdd(statistics_buffer[1], 1);
+    #endif
+
+    //Emit enough mesh shaders such that max(gl_GlobalInvocationID.x)>=quadCount
+    EmitMeshTasksEXT((quadCount+MESH_WORKLOAD_PER_INVOCATION-1)/MESH_WORKLOAD_PER_INVOCATION, 1, 1);
+}

@@ -1,0 +1,32 @@
+#version 460
+//Temporal task shader: sections that became visible this frame (sectionIndices .z)
+#moj_import <nvidium:vk/common.glsl>
+#extension GL_EXT_mesh_shader : require
+
+#moj_import <nvidium:vk/scene.glsl>
+#moj_import <nvidium:vk/terrain/task_common.glsl>
+
+layout(local_size_x=1) in;
+
+taskPayloadSharedEXT TerrainTask task;
+
+void main() {
+    uint sectionId = uint(sectionIndices[gl_WorkGroupID.x].z) + (gl_WorkGroupID.x & 0xFFFFFF00);
+
+    ivec4 header = sectionData[sectionId].header;
+    ivec3 chunk = sectionChunkPosition(header);
+    chunk -= chunkPosition.xyz;
+
+    task.transformationId = unpackRegionTransformId(regionData[sectionId>>8]);
+    chunk -= unpackOriginOffsetId(task.transformationId);
+
+    task.origin = vec3(chunk<<4);
+
+    uint meshCount = populateTasks(task, chunk, uint(header.w), uvec4(sectionData[sectionId].renderRanges));
+
+    #ifdef STATISTICS_QUADS
+    atomicAdd(statistics_buffer[2], task.quadCount);
+    #endif
+
+    EmitMeshTasksEXT(meshCount, 1, 1);
+}

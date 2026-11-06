@@ -1,0 +1,155 @@
+#version 460
+#moj_import <nvidium:vk/common.glsl>
+#extension GL_EXT_mesh_shader : require
+
+layout(set = 0, binding = 1) uniform sampler2D tex_light;
+
+#moj_import <nvidium:vk/scene.glsl>
+#moj_import <nvidium:terrain/vertex_format/vertex_format.glsl>
+#moj_import <nvidium:vk/terrain/task_common.glsl>
+
+#ifdef RENDER_FOG
+#moj_import <sodium:include/fog.glsl>
+#endif
+
+// 32 invocations = 16 quads per workgroup; each pair of invocations handles one quad, one triangle each.
+// GL_EXT_mesh_shader differences from the NV version: the output sizes must be set once, uniformly,
+// before any output is written (SetMeshOutputsEXT), so the degenerate-triangle culling result is
+// gathered first and vertices/primitives are written compacted afterwards.
+layout(local_size_x = 32) in;
+layout(triangles, max_vertices=64, max_primitives=32) out;
+
+#ifndef USE_NV_FRAGMENT_SHADER_BARYCENTRIC
+layout(location=1) out Interpolants {
+#ifdef RENDER_FOG
+    vec2 v_FragDistance;
+#endif
+    vec2 uv;
+    vec3 v_colour;
+} OUT[];
+#endif
+
+taskPayloadSharedEXT TerrainTask task;
+
+//Do a binary search via global invocation index to determine the base offset
+// Note, all threads in the work group are probably going to take the same path
+uint getOffset() {
+    uint gii = gl_GlobalInvocationID.x>>1;
+    bvec4 le = lessThan(uvec4(gii), task.binStarts);
+
+    uint retval = task.binOffsets.w;
+    if (le.y) {//x is always true
+        retval = task.binOffsets.x;
+    } else if (le.z) {
+        retval = task.binOffsets.y;
+    } else if (le.w) {
+        retval = task.binOffsets.z;
+    }
+    return retval+gii;
+}
+
+mat4 transformMat;
+
+vec4 transformVertex(Vertex V) {
+    vec3 pos = decodeVertexPosition(V)+task.origin;
+    return MVP*(transformMat * vec4(pos,1.0));
+}
+
+void putVertex(uint id, Vertex V) {
+#ifndef USE_NV_FRAGMENT_SHADER_BARYCENTRIC
+    #ifdef RENDER_FOG
+    vec3 pos = decodeVertexPosition(V)+task.origin;
+    vec3 exactPos = pos+subchunkOffset.xyz;
+    OUT[id].v_FragDistance = getFragDistance(exactPos);
+    #endif
+
+    OUT[id].uv = decodeVertexUV(V);
+    OUT[id].v_colour = computeMultiplier(V);
+#endif
+}
+
+void main() {
+    uint gii = gl_GlobalInvocationID.x>>1;
+    bool triangle1 = (gl_LocalInvocationIndex & uint(1)) == 1;
+
+    // --- gather: which triangles of this workgroup are drawn (no output writes yet) ---------------
+    bool inRange = gii < task.quadCount;
+    uint quadId = inRange ? getOffset() : uint(-1);
+    inRange = inRange && quadId != uint(-1);
+
+    Vertex Vc;
+    Vertex V;
+    vec4 pVc = vec4(0.0);
+    vec4 pV = vec4(0.0);
+    bool draw = inRange;
+    if (inRange) {
+        transformMat = transformationArray[task.transformationId];
+
+        //Load corner point, alternated w.r.t neighbor thread
+        Vc = terrainData[(quadId<<2)+(triangle1?2:0)];
+        //Load our unique vertex V1 or V3 depending on triangle0
+        V = terrainData[(quadId<<2)+(triangle1?3:1)];
+
+        pVc = transformVertex(Vc);
+        pV = transformVertex(V);
+    }
+
+#ifdef CULL_DEGENERATE_TRIANGLES
+    { //Compute the bounding pixels of the current triangle in the quad. note, vertex 0 and 2 are the common vertices
+        vec2 ssmin = ((pVc.xy/pVc.w)+1)*screenSize;
+        vec2 ssmax = ssmin;
+
+        //We exchange data of side thread common vertex here (the peer lane handles the same quad)
+        vec2 pVc2 = subgroupShuffleXor(ssmin, 1u);
+        ssmin = min(ssmin, pVc2);
+        ssmax = max(ssmax, pVc2);
+
+        vec2 point = ((pV.xy/pV.w)+1)*screenSize;
+        vec2 tmin = min(ssmin, point);
+        vec2 tmax = max(ssmax, point);
+
+        //Possibly cull the triangles if they dont cover the center of a pixel on the screen (degen)
+        float degenBias = 0.01f;
+        draw = draw && all(notEqual(round(tmin-degenBias),round(tmax+degenBias)));
+    }
+#endif
+
+    bool peerDraw = subgroupShuffleXor(draw, 1u);
+    bool quadDraw = draw || peerDraw;
+
+    // Compacted slots: quads that draw at least one triangle get 4 vertices, drawn triangles one primitive each
+    uvec4 quadBallot = subgroupBallot(quadDraw && !triangle1);
+    uint quadSlot = subgroupShuffle(subgroupBallotExclusiveBitCount(quadBallot), gl_SubgroupInvocationID & ~1u);
+    uint quadsDrawn = subgroupBallotBitCount(quadBallot);
+    uint triId = subgroupExclusiveAdd(uint(draw));
+    uint triCount = subgroupAdd(uint(draw));
+
+    SetMeshOutputsEXT(quadsDrawn * 4, triCount);
+
+    #ifdef STATISTICS_CULL
+    if (subgroupElect()) {
+        uint quadsHere = min(task.quadCount - min(task.quadCount, gl_WorkGroupID.x * 16), 16);
+        atomicAdd(statistics_buffer[3], quadsHere * 2 - triCount); // Count culled triangles
+    }
+    #endif
+
+    if (!quadDraw) {
+        return;
+    }
+
+    // --- emit -------------------------------------------------------------------------------------
+    uint qId = quadSlot * 4;
+    //emit the common vertex (vertex 0 at slot 0 by the even lane, vertex 2 at slot 1 by the odd lane)
+    gl_MeshVerticesEXT[qId+uint(triangle1)].gl_Position = pVc;
+    putVertex(qId+uint(triangle1), Vc);
+    if (draw) {
+        uint uId = qId+uint(triangle1)+2;
+        //emit our vertex
+        gl_MeshVerticesEXT[uId].gl_Position = pV;
+        putVertex(uId, V);
+
+        //Note indexing is bit funky here since we inserted in inverted order vert 0 is at idx 1 and vert 2 is at 0
+        gl_PrimitiveTriangleIndicesEXT[triId] = uvec3(qId+uint(triangle1), uId, qId+uint(!triangle1));
+        gl_MeshPrimitivesEXT[triId].gl_PrimitiveID = int(quadId<<1) | int(triangle1);
+    }
+}

@@ -42,6 +42,12 @@ steps {
         check = "ast-grep scan {{files}}"
     }
 
+    // --- Vulkan shaders: glslc (system package `shaderc`) compiles every vk/ entry shader -----------
+    ["vk-shaders"] {
+        glob = List("src/main/resources/assets/nvidium/shaders/**", "bench/compile-vk-shaders.py")
+        check = "python3 -I bench/compile-vk-shaders.py"
+    }
+
     // --- agent instruction files ---------------------------------------------------------
     ["agnix"] {
         glob = List("AGENTS.md", "CLAUDE.md", ".claude/**")

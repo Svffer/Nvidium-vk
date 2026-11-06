@@ -1,0 +1,63 @@
+#version 460
+#moj_import <nvidium:vk/common.glsl>
+#extension GL_EXT_mesh_shader : require
+
+#moj_import <nvidium:vk/scene.glsl>
+
+#define ADD_SIZE (0.1f/16)
+
+// 4 region boxes per workgroup: 8 threads per box write its 8 corners and 12 triangles
+layout(local_size_x = 32) in;
+layout(triangles, max_vertices=32, max_primitives=48) out;
+
+#moj_import <nvidium:vk/occlusion/box_indices.glsl>
+
+void main() {
+    uint baseIdx = gl_WorkGroupID.x * 4;
+    if (baseIdx >= uint(regionCount)) {
+        SetMeshOutputsEXT(0, 0);
+        return;
+    }
+    SetMeshOutputsEXT(32, 48);
+
+    uint batchIdx = gl_LocalInvocationID.x / 8;
+    uint tid = gl_LocalInvocationID.x % 8;
+    uint visibilityIndex = baseIdx + batchIdx;
+
+    if (visibilityIndex >= uint(regionCount)) {
+        if (tid == 0) regionVisibility[visibilityIndex] = uint8_t(0);
+        gl_MeshVerticesEXT[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
+        emitBox(batchIdx, tid, 0);
+        return;
+    }
+
+    //FIXME: It might actually be more efficient to just upload the region data straight into the ubo
+    // this remove an entire level of indirection and also puts region data in the very fast path
+    Region data = regionData[regionIndices[visibilityIndex]];//fetch the region data
+
+    //If the region metadata was empty, return
+    if (data.a == uint64_t(-1)) {
+        if (tid == 0) regionVisibility[visibilityIndex] = uint8_t(0);
+        gl_MeshVerticesEXT[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
+        emitBox(batchIdx, tid, int(visibilityIndex));
+        return;
+    }
+
+    ivec3 pos = unpackRegionPosition(data);
+    pos -= chunkPosition.xyz;
+    pos -= unpackOriginOffsetId(unpackRegionTransformId(data));
+    ivec3 size = unpackRegionSize(data);
+
+    vec3 start = pos - ADD_SIZE;
+    vec3 end = start + 1 + size + (ADD_SIZE*2);
+
+    vec3 corner = vec3(((tid&1)==0)?start.x:end.x, ((tid&4)==0)?start.y:end.y, ((tid&2)==0)?start.z:end.z);
+    corner *= 16.0f;
+    gl_MeshVerticesEXT[gl_LocalInvocationID.x].gl_Position = MVP*(getRegionTransformation(data)*vec4(corner, 1.0));
+
+    emitBox(batchIdx, tid, int(visibilityIndex));
+    if (tid == 0) {
+        bool cameraInRegion = all(lessThan(start*16+subchunkOffset.xyz, vec3(ADD_SIZE*16))) && all(lessThan(vec3(-ADD_SIZE*16), end*16+subchunkOffset.xyz));
+        regionVisibility[visibilityIndex] = cameraInRegion?uint8_t(1):uint8_t(0);
+    }
+}

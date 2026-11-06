@@ -1,0 +1,37 @@
+#version 460
+#moj_import <nvidium:vk/common.glsl>
+#extension GL_EXT_mesh_shader : require
+
+#moj_import <nvidium:vk/scene.glsl>
+#moj_import <nvidium:vk/occlusion/section_task_common.glsl>
+
+//This is 1 since each task shader workgroup -> multiple meshlets
+layout(local_size_x=1) in;
+
+taskPayloadSharedEXT SectionTask task;
+
+void main() {
+    //Early exit if the region wasnt visible
+    if (regionVisibility[gl_WorkGroupID.x] == uint8_t(0)) {
+        EmitMeshTasksEXT(0, 1, 1);
+        return;
+    }
+
+    #ifdef STATISTICS_REGIONS
+    atomicAdd(statistics_buffer[0], 1);
+    #endif
+
+    //FIXME: It might actually be more efficient to just upload the region data straight into the ubo
+    uint offset = uint(regionIndices[gl_WorkGroupID.x]);
+    Region data = regionData[offset];
+    int count = unpackRegionCount(data)+1;
+
+    task._visOutBase = offset<<8;//This makes checking visibility very fast and quick in the compute shader
+    task._offset = offset<<8;
+    task.regionTransform = getRegionTransformation(data);
+
+    task.chunkShift = (-chunkPosition.xyz) - unpackOriginOffsetId(unpackRegionTransformId(data));
+
+    task.sectionCount = uint(count);
+    EmitMeshTasksEXT((count + 3) / 4, 1, 1);
+}

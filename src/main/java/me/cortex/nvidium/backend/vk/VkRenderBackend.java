@@ -3,6 +3,7 @@ package me.cortex.nvidium.backend.vk;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTextureView;
+import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.backend.Barrier;
 import me.cortex.nvidium.backend.IBuffer;
 import me.cortex.nvidium.backend.IClientMappedBuffer;
@@ -42,11 +43,13 @@ public final class VkRenderBackend implements IRenderBackend, AutoCloseable {
     private final VkContext ctx;
     private final VkAllocator allocator;
     private final VkDeviceCapabilities capabilities;
+    private final VkSpirvCompiler compiler;
 
     public VkRenderBackend(VkContext ctx, VkDeviceCapabilities capabilities) {
         this.ctx = ctx;
         this.capabilities = capabilities;
         this.allocator = new VkAllocator(ctx.vkDevice());
+        this.compiler = new VkSpirvCompiler(Nvidium.IS_DEBUG);
     }
 
     public VkContext context() {
@@ -100,7 +103,7 @@ public final class VkRenderBackend implements IRenderBackend, AutoCloseable {
 
     @Override
     public IShaderBuilder createShader(IShaderProcessor processor) {
-        throw new UnsupportedOperationException("M4: shaders");
+        return new VkShader.Builder(ctx, compiler, processor);
     }
 
     @Override
@@ -259,9 +262,13 @@ public final class VkRenderBackend implements IRenderBackend, AutoCloseable {
         throw new UnsupportedOperationException("M5: dispatch");
     }
 
-    /** Destroys the allocator. Every buffer must have been deleted and its deferred destruction run. */
+    /**
+     * Destroys the allocator after everything queued before it: deletions go through
+     * {@code queueForDestroy} (one submit later), so the allocator is closed through the same FIFO queue.
+     */
     @Override
     public void close() {
-        allocator.close();
+        compiler.close();
+        ctx.encoder().queueForDestroy(allocator::close);
     }
 }

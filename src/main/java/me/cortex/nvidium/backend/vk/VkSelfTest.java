@@ -71,9 +71,8 @@ public final class VkSelfTest {
         long t0 = System.nanoTime();
         try (VkRenderBackend backend = new VkRenderBackend(ctx, caps)) {
             boolean ok = roundTrip(backend);
-            // Buffers were queued for destruction on the submit we just waited for; run the queue by doing
-            // one more (empty) submit so the allocator is empty before it is destroyed.
-            ctx.encoder().submit();
+            // Buffers, pipeline and the allocator itself are destroyed through the encoder's destruction
+            // queue as the first frames are submitted.
             Nvidium.LOGGER.info(
                     "[vk self-test] {} in {} ms", ok ? "PASSED" : "FAILED", (System.nanoTime() - t0) / 1_000_000);
         } catch (RuntimeException e) {

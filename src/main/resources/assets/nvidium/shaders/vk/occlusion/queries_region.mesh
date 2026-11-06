@@ -1,0 +1,58 @@
+#version 460
+// Region visibility query: same boxes as region_raster, but clears the visibility byte first so the
+// fragment shader's write reports "seen this frame" for the CPU-side eviction heuristic.
+#moj_import <nvidium:vk/common.glsl>
+#extension GL_EXT_mesh_shader : require
+
+#moj_import <nvidium:vk/scene.glsl>
+
+#define ADD_SIZE (0.1f/16)
+
+layout(local_size_x = 32) in;
+layout(triangles, max_vertices=32, max_primitives=48) out;
+
+#moj_import <nvidium:vk/occlusion/box_indices.glsl>
+
+void main() {
+    uint baseIdx = gl_WorkGroupID.x * 4;
+    if (baseIdx >= uint(regionCount)) {
+        SetMeshOutputsEXT(0, 0);
+        return;
+    }
+    SetMeshOutputsEXT(32, 48);
+
+    uint batchIdx = gl_LocalInvocationID.x / 8;
+    uint tid = gl_LocalInvocationID.x % 8;
+    uint visibilityIndex = baseIdx + batchIdx;
+
+    if (visibilityIndex >= uint(regionCount)) {
+        if (tid == 0) regionVisibility[visibilityIndex] = uint8_t(0);
+        gl_MeshVerticesEXT[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
+        emitBox(batchIdx, tid, 0);
+        return;
+    }
+
+    Region data = regionData[regionIndices[visibilityIndex]];//fetch the region data
+
+    if (data.a == uint64_t(-1)) {
+        if (tid == 0) regionVisibility[visibilityIndex] = uint8_t(0);
+        gl_MeshVerticesEXT[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
+        emitBox(batchIdx, tid, int(visibilityIndex));
+        return;
+    }
+
+    ivec3 pos = unpackRegionPosition(data);
+    pos -= chunkPosition.xyz;
+    pos -= unpackOriginOffsetId(unpackRegionTransformId(data));
+
+    vec3 start = pos - ADD_SIZE;
+    vec3 end = start + 1 + unpackRegionSize(data) + (ADD_SIZE*2);
+
+    vec3 corner = vec3(((tid&1)==0)?start.x:end.x, ((tid&4)==0)?start.y:end.y, ((tid&2)==0)?start.z:end.z);
+    corner *= 16.0f;
+    gl_MeshVerticesEXT[gl_LocalInvocationID.x].gl_Position = MVP*(getRegionTransformation(data)*vec4(corner, 1.0));
+
+    regionVisibility[visibilityIndex] = uint8_t(0);
+
+    emitBox(batchIdx, tid, int(visibilityIndex));
+}

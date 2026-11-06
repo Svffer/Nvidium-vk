@@ -76,10 +76,24 @@ public final class VkDeviceBootstrap {
             VulkanBackend.VK11_FEATURES_STRUCT,
             "storageBuffer16BitAccess",
             VkPhysicalDeviceVulkan11Features.STORAGEBUFFER16BITACCESS);
+    // The scene uniform block ends in uint16_t regionCount / uint8_t frameId (same packing as GL).
+    private static final VulkanFeature UNIFORM_8BIT = new VulkanFeature(
+            VulkanBackend.VK12_FEATURES_STRUCT,
+            "uniformAndStorageBuffer8BitAccess",
+            VkPhysicalDeviceVulkan12Features.UNIFORMANDSTORAGEBUFFER8BITACCESS);
+    private static final VulkanFeature UNIFORM_16BIT = new VulkanFeature(
+            VulkanBackend.VK11_FEATURES_STRUCT,
+            "uniformAndStorageBuffer16BitAccess",
+            VkPhysicalDeviceVulkan11Features.UNIFORMANDSTORAGEBUFFER16BITACCESS);
     private static final VulkanFeature SHADER_INT64 =
             new VulkanFeature(VulkanBackend.VK10_FEATURES_STRUCT, "shaderInt64", VkPhysicalDeviceFeatures.SHADERINT64);
     private static final VulkanFeature SHADER_INT16 =
             new VulkanFeature(VulkanBackend.VK10_FEATURES_STRUCT, "shaderInt16", VkPhysicalDeviceFeatures.SHADERINT16);
+    // No geometry shaders are used, but the glslang bundled with LWJGL's shaderc declares the SPIR-V
+    // `Geometry` capability for gl_PrimitiveID in mesh and fragment shaders (newer glslang uses
+    // MeshShadingEXT); the device must then have geometryShader enabled or vkCreateShaderModule fails.
+    private static final VulkanFeature GEOMETRY_SHADER = new VulkanFeature(
+            VulkanBackend.VK10_FEATURES_STRUCT, "geometryShader", VkPhysicalDeviceFeatures.GEOMETRYSHADER);
 
     // --- optional: optimisations of the occlusion raster, one shader each -----------------------------
     private static final VulkanFeature FRAGMENT_SHADER_BARYCENTRIC = new VulkanFeature(
@@ -124,8 +138,11 @@ public final class VkDeviceBootstrap {
                     SHADER_INT8,
                     SCALAR_BLOCK_LAYOUT,
                     STORAGE_BUFFER_16BIT,
+                    UNIFORM_8BIT,
+                    UNIFORM_16BIT,
                     SHADER_INT64,
-                    SHADER_INT16));
+                    SHADER_INT16,
+                    GEOMETRY_SHADER));
             if (hasMeshExt) {
                 required.add(TASK_SHADER);
                 required.add(MESH_SHADER);

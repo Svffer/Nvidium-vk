@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.NvidiumWorldRenderer;
+import me.cortex.nvidium.backend.vk.VkShaderTest;
 import me.cortex.nvidium.sodiumCompat.INvidiumWorldRendererGetter;
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderMatrices;
@@ -63,6 +64,8 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
             FogParameters fogParameters,
             GpuSampler terrainSampler,
             CallbackInfo ci) {
+        VkShaderTest.runOnce(); // dev only (-Dnvidium.vkShaderTest), no-op otherwise
+
         if (Nvidium.IS_ENABLED) {
             ci.cancel();
             if (pass == DefaultTerrainRenderPasses.CUTOUT) // Early exit, cutout will be rendered with SOLID
