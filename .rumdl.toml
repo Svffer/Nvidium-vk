@@ -1,0 +1,9 @@
+# rumdl (https://github.com/rvben/rumdl) configuration for README.md and docs/*.md.
+
+[global]
+exclude = ["run/", "build/"]
+
+[MD013]
+line_length = 120   # the docs are written at ~95-100 columns; 80 would rewrap every paragraph
+code_blocks = false # tables of benchmark results and long shell commands live in code blocks
+tables = false
