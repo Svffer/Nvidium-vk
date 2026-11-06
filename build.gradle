@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version '1.17-SNAPSHOT'
+    id 'net.neoforged.moddev' version '2.0.148'
     id 'maven-publish'
 }
 
@@ -30,20 +30,44 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 
-apply plugin: "fabric-loom"
-
-loom {
-    accessWidenerPath = file("src/main/resources/nvidium.accesswidener")
-
-    runs {
-        it.configureEach {
-            vmArgs("-Xmx16G")
-        }
-    }
+base {
+    archivesName = "nvidium-neoforge"
 }
 
-base {
-    archivesName = "nvidium"
+neoForge {
+    version = project.neo_version
+
+    // Access transformer is picked up from the default location
+    // src/main/resources/META-INF/accesstransformer.cfg
+
+    runs {
+        client {
+            client()
+            jvmArguments.addAll("-Xmx8G")
+
+            // Benchmark harness (docs/VULKAN_PLAN.md, M0):
+            //   ./gradlew runClient -PbenchLabel="gl+nvidium" [-PbenchWorld="New World"]
+            //            [-PnvidiumDisable=true] [-PbenchWarmup=45] [-PbenchDuration=60]
+            if (project.hasProperty('benchLabel')) {
+                systemProperties.put('nvidium.bench', 'true')
+                systemProperties.put('nvidium.bench.label', project.property('benchLabel').toString())
+                if (project.hasProperty('benchWarmup')) systemProperties.put('nvidium.bench.warmup', project.property('benchWarmup').toString())
+                if (project.hasProperty('benchDuration')) systemProperties.put('nvidium.bench.duration', project.property('benchDuration').toString())
+                if (project.hasProperty('benchPos')) systemProperties.put('nvidium.bench.pos', project.property('benchPos').toString())
+                programArguments.addAll('--quickPlaySingleplayer', project.findProperty('benchWorld')?.toString() ?: 'New World')
+                programArguments.addAll('--width', '1600', '--height', '900')
+            }
+            if (project.hasProperty('nvidiumDisable')) {
+                systemProperties.put('nvidium.forceDisable', 'true')
+            }
+        }
+    }
+
+    mods {
+        nvidium {
+            sourceSet sourceSets.main
+        }
+    }
 }
 
 processResources {
@@ -51,7 +75,7 @@ processResources {
 
     inputs.properties("version": version, "commit": gitCommitHash, "buildtime": buildtime)
 
-    filesMatching("fabric.mod.json") {
+    filesMatching("META-INF/neoforge.mods.toml") {
         expand "commit": gitCommitHash, "version": version, "buildtime": buildtime
     }
 }
@@ -70,29 +94,39 @@ repositories {
     }
     maven {
         name = "CaffeineMC"
-        url = "https://maven.caffeinemc.net/releases" // or /snapshots
+        url = "https://maven.caffeinemc.net/releases"
     }
 }
 
-dependencies {
-    // To change the versions see the gradle.properties file
-    minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-    // Fabric API
-    implementation(fabricApi.module("fabric-api-base", project.fabric_version))
-    implementation(fabricApi.module("fabric-block-getter-api-v2", project.fabric_version))
-    implementation(fabricApi.module("fabric-rendering-fluids-v1", project.fabric_version))
-    //modImplementation(fabricApi.module("fabric-renderer-api-v1", project.fabric_version))
-
-    implementation(fabricApi.module("fabric-resource-loader-v0", project.fabric_version))
-
-    implementation "net.caffeinemc:sodium-fabric:0.9.2+mc26.2"
-    implementation "net.caffeinemc:sodium-fabric-api:0.9.2+mc26.2"
-
-    //modImplementation "maven.modrinth:c2me-fabric:0.2.0+alpha.10.49+1.19.4"
-    //modImplementation "maven.modrinth:chunks-fade-in:v1.0.3-1.19.4"
-    //modImplementation "maven.modrinth:immersiveportals:v2.7.3-mc1.19.4"
-    compileOnly "maven.modrinth:iris:1.11.4+26.2-fabric"
+// The published sodium-neoforge artifact is a LIBRARY-type wrapper jar
+// (platform/compatibility classes) that carries the actual mod in
+// META-INF/jarjar/*.jar. The nested jar is extracted purely for compilation;
+// at runtime the whole wrapper goes on the classpath and FML unpacks JarJar.
+configurations {
+    sodiumWrapper {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
 }
 
+tasks.register('extractSodium', Copy) {
+    def wrapper = configurations.sodiumWrapper
+    from({ zipTree(wrapper.singleFile) }) {
+        include 'META-INF/jarjar/*.jar'
+        eachFile { it.path = it.name }
+        includeEmptyDirs = false
+    }
+    into layout.buildDirectory.dir('sodium')
+}
+
+dependencies {
+    sodiumWrapper "net.caffeinemc:sodium-neoforge:${project.sodium_version}"
+
+    compileOnly fileTree(dir: layout.buildDirectory.dir('sodium'), include: '*.jar').builtBy('extractSodium')
+    compileOnly files(configurations.sodiumWrapper)
+    runtimeOnly "net.caffeinemc:sodium-neoforge:${project.sodium_version}"
+    implementation "net.caffeinemc:sodium-neoforge-api:${project.sodium_version}"
+
+    compileOnly "maven.modrinth:iris:${project.iris_version}"
+}

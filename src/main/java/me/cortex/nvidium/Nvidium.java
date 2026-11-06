@@ -1,8 +1,8 @@
 package me.cortex.nvidium;
 
 import me.cortex.nvidium.config.NvidiumConfig;
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.ModContainer;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.ModContainer;
 import net.minecraft.util.Util;
 import org.lwjgl.opengl.GL;
 import org.slf4j.Logger;
@@ -15,14 +15,14 @@ public class Nvidium {
     public static boolean IS_ENABLED = false;
     public static boolean IS_DEBUG = System.getProperty("nvidium.isDebug", "false").equals("TRUE");
     public static boolean SUPPORTS_PERSISTENT_SPARSE_ADDRESSABLE_BUFFER = true;
-    public static boolean FORCE_DISABLE = false;
+    public static boolean FORCE_DISABLE = Boolean.getBoolean("nvidium.forceDisable");
 
     public static NvidiumConfig config = NvidiumConfig.loadOrCreate();
 
     static {
-        ModContainer mod = (ModContainer) FabricLoader.getInstance().getModContainer("nvidium").orElseThrow(NullPointerException::new);
-        var version = mod.getMetadata().getVersion().getFriendlyString();
-        var commit = mod.getMetadata().getCustomValue("commit").getAsString();
+        ModContainer mod = ModList.get().getModContainerById("nvidium").orElseThrow(NullPointerException::new);
+        var version = mod.getModInfo().getVersion().toString();
+        var commit = String.valueOf(mod.getModInfo().getModProperties().getOrDefault("commit", "<UnknownCommit>"));
         MOD_VERSION = version+"-"+commit;
     }
 
