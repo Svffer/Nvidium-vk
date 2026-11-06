@@ -1,0 +1,36 @@
+# Project toolchain: every quality tool is pinned here and installed with `mise install`.
+# The JDK is NOT managed here; Gradle resolves it through the foojay toolchain plugin.
+# Versions were looked up on 2026-11-06; bump them deliberately, one at a time.
+
+[tools]
+hk = "2.11.1"                      # git hooks + `hk check --all`, reads hk.pkl
+betterleaks = "1.10.0"             # secrets in staged content and git history
+typos = "1.52.0"                   # spell check for code and docs
+rumdl = "0.3.2"                    # Markdown lint
+shellcheck = "0.11.0"              # bench/*.sh
+ruff = "0.17.3"                    # bench/*.py lint + format
+ast-grep = "0.51.1"                # project rules (rules/*.yml), e.g. the GL import boundary
+jq = "1.8.2"                       # JSON validity for mixin config / lang files
+"github:agent-sh/agnix" = "0.61.0"    # lints AGENTS.md
+
+[tasks.check]
+description = "Run every quality check. Must pass before a change is done."
+# hk runs every step from hk.pkl on all files, including `./gradlew spotlessCheck compileJava`
+# (Error Prone) and the ast-grep rules; the two extra lines are whole-project checks that have no
+# per-file form.
+run = [
+  "hk check --all",
+  "ast-grep test",
+  "betterleaks git . --no-banner --redact",
+]
+
+[tasks.fix]
+description = "Apply the safe autofixes (Spotless, ruff, rumdl, file hygiene), then re-check."
+run = [
+  "hk fix --all",
+  "mise run check",
+]
+
+[tasks.hooks]
+description = "Install the git hooks (pre-commit) for this clone."
+run = "hk install --mise"
