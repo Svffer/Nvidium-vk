@@ -7,9 +7,9 @@ import me.cortex.nvidium.backend.Barrier;
 import me.cortex.nvidium.backend.IBuffer;
 import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.backend.IShader;
+import me.cortex.nvidium.backend.NvidiumShader;
 import me.cortex.nvidium.sodiumCompat.ShaderLoader;
 import me.cortex.nvidium.util.DownloadTaskStream;
-import net.minecraft.resources.Identifier;
 import org.lwjgl.system.MemoryUtil;
 
 public class RegionVisibilityTracker {
@@ -23,14 +23,8 @@ public class RegionVisibilityTracker {
     public RegionVisibilityTracker(IRenderBackend backend, DownloadTaskStream downStream, int maxRegions) {
         this.backend = backend;
         this.shader = backend.createShader()
-                .addSource(
-                        MESH,
-                        ShaderLoader.parse(
-                                Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/mesh.glsl")))
-                .addSource(
-                        FRAGMENT,
-                        ShaderLoader.parse(
-                                Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/fragment.frag")))
+                .addSource(MESH, ShaderLoader.parse(backend.shaderSource(NvidiumShader.REGION_QUERY_MESH)))
+                .addSource(FRAGMENT, ShaderLoader.parse(backend.shaderSource(NvidiumShader.REGION_QUERY_FRAG)))
                 .compile();
         this.downStream = downStream;
         visible = new int[maxRegions];

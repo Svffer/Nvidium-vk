@@ -17,7 +17,9 @@ layout(buffer_reference, scalar, buffer_reference_align = 8) readonly buffer Reg
 layout(buffer_reference, scalar, buffer_reference_align = 16) buffer SectionRef { Section v[]; };
 layout(buffer_reference, scalar, buffer_reference_align = 1) buffer U8Ref { uint8_t v[]; };
 layout(buffer_reference, scalar, buffer_reference_align = 1) buffer U8Vec3Ref { u8vec3 v[]; };
-layout(buffer_reference, scalar, buffer_reference_align = 8) writeonly buffer UVec2Ref { uvec2 v[]; };
+// Indirect mesh-task commands: VkDrawMeshTasksIndirectCommandEXT {x, y, z} plus the base section id in .w
+// (the NV command carried it as `first`; EXT has no first, the task shader reads it via gl_DrawID).
+layout(buffer_reference, scalar, buffer_reference_align = 16) buffer UVec4Ref { uvec4 v[]; };
 #ifdef USE_SODIUM_VERTEX_FORMAT
 layout(buffer_reference, scalar, buffer_reference_align = 4) buffer VertexRef { Vertex v[]; };   // 20-byte stride
 #else
@@ -41,9 +43,9 @@ layout(set = 0, binding = 2, scalar) uniform SceneData {
     U8Ref regionVisibility_;
     U8Ref sectionVisibility_;
     U8Vec3Ref sectionIndices_;
-    UVec2Ref terrainCommandBuffer_;
-    UVec2Ref translucencyCommandBuffer_;
-    UVec2Ref temporalCommandBuffer_;
+    UVec4Ref terrainCommandBuffer_;
+    UVec4Ref translucencyCommandBuffer_;
+    UVec4Ref temporalCommandBuffer_;
     U16Ref sortingRegionList_;
     VertexRef terrainData_;
     U32Ref translucencyIndexData_;

@@ -164,9 +164,10 @@ public class RenderPipeline {
         regionVisibility = device.createDeviceOnlyMappedBuffer(maxRegions);
         sectionVisibility = device.createDeviceOnlyMappedBuffer(maxRegions * 256L);
         sectionIndices = device.createDeviceOnlyMappedBuffer(maxRegions * 256L * 3L);
-        terrainCommandBuffer = device.createDeviceOnlyMappedBuffer(maxRegions * 8L);
-        translucencyCommandBuffer = device.createDeviceOnlyMappedBuffer(maxRegions * 8L);
-        temporalCommandBuffer = device.createDeviceOnlyMappedBuffer(maxRegions * 8L);
+        terrainCommandBuffer = device.createDeviceOnlyMappedBuffer(maxRegions * (long) device.indirectCommandStride());
+        translucencyCommandBuffer =
+                device.createDeviceOnlyMappedBuffer(maxRegions * (long) device.indirectCommandStride());
+        temporalCommandBuffer = device.createDeviceOnlyMappedBuffer(maxRegions * (long) device.indirectCommandStride());
         regionSortingList = device.createDeviceOnlyMappedBuffer(maxRegions * 2L);
         this.transformationArray =
                 device.createDeviceOnlyMappedBuffer(RegionManager.MAX_TRANSFORMATION_COUNT * (4 * 4 * 4));

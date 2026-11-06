@@ -9,11 +9,11 @@ import com.mojang.blaze3d.textures.GpuTextureView;
 import me.cortex.nvidium.backend.IDeviceMappedBuffer;
 import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.backend.IShader;
+import me.cortex.nvidium.backend.NvidiumShader;
 import me.cortex.nvidium.sodiumCompat.ShaderLoader;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderDefines;
-import net.minecraft.resources.Identifier;
 
 public class TranslucentTerrainRasterizer extends Phase {
     private final IShader shader;
@@ -21,16 +21,12 @@ public class TranslucentTerrainRasterizer extends Phase {
     public TranslucentTerrainRasterizer(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
-                .addSource(
-                        TASK,
-                        ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/task.glsl")))
-                .addSource(
-                        MESH,
-                        ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/mesh.glsl")))
+                .addSource(TASK, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TRANSLUCENT_TASK)))
+                .addSource(MESH, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TRANSLUCENT_MESH)))
                 .addSource(
                         FRAGMENT,
                         ShaderLoader.parse(
-                                Identifier.fromNamespaceAndPath("nvidium", "terrain/frag.frag"),
+                                backend.shaderSource(NvidiumShader.TERRAIN_FRAG),
                                 ShaderDefines.builder().define("TRANSLUCENT_PASS")))
                 .compile();
     }

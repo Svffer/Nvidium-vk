@@ -15,9 +15,11 @@ import me.cortex.nvidium.backend.IShaderBuilder;
 import me.cortex.nvidium.backend.IShaderProcessor;
 import me.cortex.nvidium.backend.ISparseBuffer;
 import me.cortex.nvidium.backend.ITimestampQuerySet;
+import me.cortex.nvidium.backend.NvidiumShader;
 import me.cortex.nvidium.backend.vk.buffers.VkBuffer;
 import me.cortex.nvidium.backend.vk.buffers.VkClientMappedBuffer;
 import me.cortex.nvidium.backend.vk.buffers.VkDeviceOnlyBuffer;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.KHRSynchronization2;
 import org.lwjgl.vulkan.VK12;
@@ -109,6 +111,16 @@ public final class VkRenderBackend implements IRenderBackend, AutoCloseable {
     @Override
     public ITimestampQuerySet createTimestampQuerySet() {
         throw new UnsupportedOperationException("M5: timestamp queries");
+    }
+
+    @Override
+    public Identifier shaderSource(NvidiumShader shader) {
+        return shader.vk();
+    }
+
+    @Override
+    public int indirectCommandStride() {
+        return 16; // VkDrawMeshTasksIndirectCommandEXT {x, y, z} + base section id (read via gl_DrawID)
     }
 
     // ---------------------------------------------------------------- buffer operations

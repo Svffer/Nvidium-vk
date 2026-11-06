@@ -1,6 +1,7 @@
 #version 460
 #moj_import <nvidium:vk/common.glsl>
 #extension GL_EXT_mesh_shader : require
+#extension GL_ARB_shader_draw_parameters : require
 
 #moj_import <nvidium:vk/scene.glsl>
 #moj_import <nvidium:vk/terrain/task_common.glsl>
@@ -11,7 +12,9 @@ layout(local_size_x=1) in;
 taskPayloadSharedEXT TerrainTask task;
 
 void main() {
-    uint sectionId = uint(sectionIndices[gl_WorkGroupID.x].x) + (gl_WorkGroupID.x & 0xFFFFFF00);
+    //EXT indirect commands have no `first`: the command's .w carries the base section id (region << 8)
+    uint baseSectionId = terrainCommandBuffer[gl_DrawID].w;
+    uint sectionId = uint(sectionIndices[baseSectionId + gl_WorkGroupID.x].x) + baseSectionId;
 
     #ifdef STATISTICS_SECTIONS
     atomicAdd(statistics_buffer[1], 1);

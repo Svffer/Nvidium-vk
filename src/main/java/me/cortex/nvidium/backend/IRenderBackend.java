@@ -3,6 +3,7 @@ package me.cortex.nvidium.backend;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTextureView;
+import net.minecraft.resources.Identifier;
 
 /**
  * Everything in nvidium that touches the GPU goes through this interface. There is exactly one
@@ -36,6 +37,16 @@ public interface IRenderBackend {
     }
 
     ITimestampQuerySet createTimestampQuerySet();
+
+    /** Resource location of this backend's version of a renderer shader (see {@link NvidiumShader}). */
+    Identifier shaderSource(NvidiumShader shader);
+
+    /**
+     * Byte stride of one indirect mesh-task command as written by the command-buffer-builder shader and
+     * consumed by {@link #drawMeshTasksIndirect}: 8 on GL ({@code count, first}), 16 on Vulkan
+     * ({@code VkDrawMeshTasksIndirectCommandEXT} plus the base section id).
+     */
+    int indirectCommandStride();
 
     // ---------------------------------------------------------------- buffer operations
 
@@ -102,8 +113,8 @@ public interface IRenderBackend {
     void drawMeshTasks(IShader shader, int first, int count);
 
     /**
-     * Executes {@code drawCount} tightly packed 8-byte {@code (count, first)} mesh-task commands
-     * read from {@code commands} starting at {@code offset}.
+     * Executes {@code drawCount} mesh-task commands of {@link #indirectCommandStride()} bytes each, read
+     * from {@code commands} starting at {@code offset}.
      */
     void drawMeshTasksIndirect(IShader shader, IDeviceMappedBuffer commands, long offset, int drawCount);
 

@@ -21,9 +21,9 @@ bool hasTranslucentData(uint sectionId) {
 void main() {
     if (regionVisibility[gl_WorkGroupID.x] == uint8_t(0)) {
         if (subgroupElect()) {
-            terrainCommandBuffer[gl_WorkGroupID.x] = uvec2(0);
-            translucencyCommandBuffer[(uint(regionCount) - gl_WorkGroupID.x) - 1] = uvec2(0);
-            temporalCommandBuffer[gl_WorkGroupID.x] = uvec2(0);
+            terrainCommandBuffer[gl_WorkGroupID.x] = uvec4(0, 1, 1, 0);
+            translucencyCommandBuffer[(uint(regionCount) - gl_WorkGroupID.x) - 1] = uvec4(0, 1, 1, 0);
+            temporalCommandBuffer[gl_WorkGroupID.x] = uvec4(0, 1, 1, 0);
         }
         return;
     }
@@ -69,8 +69,9 @@ void main() {
     }
 
     if (subgroupElect()) {
-        terrainCommandBuffer[gl_WorkGroupID.x] = uvec2(totalSectionCount.x, baseSectionId);
-        translucencyCommandBuffer[(uint(regionCount) - gl_WorkGroupID.x) - 1] = uvec2(totalSectionCount.y, baseSectionId);
-        temporalCommandBuffer[gl_WorkGroupID.x] = uvec2(totalSectionCount.z, baseSectionId);
+        //VkDrawMeshTasksIndirectCommandEXT {groupCountX, 1, 1} + base section id for the task shader (gl_DrawID)
+        terrainCommandBuffer[gl_WorkGroupID.x] = uvec4(totalSectionCount.x, 1, 1, baseSectionId);
+        translucencyCommandBuffer[(uint(regionCount) - gl_WorkGroupID.x) - 1] = uvec4(totalSectionCount.y, 1, 1, baseSectionId);
+        temporalCommandBuffer[gl_WorkGroupID.x] = uvec4(totalSectionCount.z, 1, 1, baseSectionId);
     }
 }

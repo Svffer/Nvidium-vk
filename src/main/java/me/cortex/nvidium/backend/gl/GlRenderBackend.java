@@ -30,6 +30,7 @@ import me.cortex.nvidium.backend.gl.buffers.GlDeviceOnlyBuffer;
 import me.cortex.nvidium.backend.gl.buffers.GlSparseBuffer;
 import me.cortex.nvidium.mixin.minecraft.CommandEncoderAccessor;
 import me.cortex.nvidium.mixin.minecraft.gl.GlCommandEncoderAccessor;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL33C;
@@ -123,6 +124,16 @@ public class GlRenderBackend implements IRenderBackend {
     @Override
     public ITimestampQuerySet createTimestampQuerySet() {
         return new GlTimestampQuerySet();
+    }
+
+    @Override
+    public Identifier shaderSource(NvidiumShader shader) {
+        return shader.gl();
+    }
+
+    @Override
+    public int indirectCommandStride() {
+        return 8; // NV_bindless_multi_draw_indirect mesh task command: (count, first)
     }
 
     // ---------------------------------------------------------------- buffer operations
@@ -271,7 +282,11 @@ public class GlRenderBackend implements IRenderBackend {
     @Override
     public void drawMeshTasksIndirect(IShader shader, IDeviceMappedBuffer commands, long offset, int drawCount) {
         ((GlShader) shader).bind();
-        glBufferAddressRangeNV(GL_DRAW_INDIRECT_ADDRESS_NV, 0, commands.getDeviceAddress() + offset, drawCount * 8L);
+        glBufferAddressRangeNV(
+                GL_DRAW_INDIRECT_ADDRESS_NV,
+                0,
+                commands.getDeviceAddress() + offset,
+                drawCount * (long) indirectCommandStride());
         glMultiDrawMeshTasksIndirectNV(0, drawCount, 0);
     }
 

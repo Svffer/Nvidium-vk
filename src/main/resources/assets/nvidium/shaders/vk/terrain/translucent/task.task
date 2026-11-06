@@ -1,6 +1,7 @@
 #version 460
 #moj_import <nvidium:vk/common.glsl>
 #extension GL_EXT_mesh_shader : require
+#extension GL_ARB_shader_draw_parameters : require
 
 #moj_import <nvidium:vk/scene.glsl>
 #moj_import <nvidium:vk/terrain/translucent/task_common.glsl>
@@ -10,7 +11,9 @@ layout(local_size_x=1) in;
 taskPayloadSharedEXT TranslucentTask task;
 
 void main() {
-    uint sectionId = uint(sectionIndices[gl_WorkGroupID.x].y) + (gl_WorkGroupID.x & 0xFFFFFF00);
+    //EXT indirect commands have no `first`: the command's .w carries the base section id (region << 8)
+    uint baseSectionId = translucencyCommandBuffer[gl_DrawID].w;
+    uint sectionId = uint(sectionIndices[baseSectionId + gl_WorkGroupID.x].y) + baseSectionId;
 
     task.translucencyIndex = sectionData[sectionId].translucencyDataIdx;
 

@@ -9,10 +9,10 @@ import com.mojang.blaze3d.textures.GpuTextureView;
 import me.cortex.nvidium.backend.IDeviceMappedBuffer;
 import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.backend.IShader;
+import me.cortex.nvidium.backend.NvidiumShader;
 import me.cortex.nvidium.sodiumCompat.ShaderLoader;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
 
 public class TemporalTerrainRasterizer extends Phase {
     private final IShader shader;
@@ -20,12 +20,9 @@ public class TemporalTerrainRasterizer extends Phase {
     public TemporalTerrainRasterizer(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
-                .addSource(
-                        TASK,
-                        ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/temporal_task.glsl")))
-                .addSource(MESH, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/mesh.glsl")))
-                .addSource(
-                        FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/frag.frag")))
+                .addSource(TASK, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TEMPORAL_TASK)))
+                .addSource(MESH, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TERRAIN_MESH)))
+                .addSource(FRAGMENT, ShaderLoader.parse(backend.shaderSource(NvidiumShader.TERRAIN_FRAG)))
                 .compile();
     }
 
