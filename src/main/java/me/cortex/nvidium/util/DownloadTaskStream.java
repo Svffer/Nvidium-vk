@@ -12,7 +12,7 @@ public class DownloadTaskStream {
         void accept(long addr);
     }
 
-    private record Download(long addr, IDownloadFinishedCallback callback) {}
+    private record Download(long addr, int size, IDownloadFinishedCallback callback) {}
 
     private final SegmentedManager allocator = new SegmentedManager();
     private final IRenderBackend backend;
@@ -35,12 +35,13 @@ public class DownloadTaskStream {
     public void download(IBuffer source, long offset, int size, IDownloadFinishedCallback callback) {
         long addr = allocator.alloc(size);
         backend.copyBuffer(source, buffer, offset, addr, size);
-        allocations[cidx].add(new Download(addr, callback));
+        allocations[cidx].add(new Download(addr, size, callback));
     }
 
     void tick() {
         cidx = (cidx + 1) % allocations.length;
         for (var download : allocations[cidx]) {
+            backend.invalidateMapped(buffer, download.addr, download.size);
             download.callback.accept(download.addr + buffer.clientAddress());
             allocator.free(download.addr);
         }

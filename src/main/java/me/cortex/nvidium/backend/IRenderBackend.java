@@ -42,6 +42,12 @@ public interface IRenderBackend {
     /** Makes host writes to a mapped range visible to the GPU. */
     void flushMapped(IClientMappedBuffer buffer, long offset, long size);
 
+    /**
+     * Makes GPU writes to a mapped range visible to the host; call before reading a download. No-op on
+     * backends whose mapped memory is coherent (GL persistent maps).
+     */
+    default void invalidateMapped(IClientMappedBuffer buffer, long offset, long size) {}
+
     void copyBuffer(IBuffer src, IBuffer dst, long srcOffset, long dstOffset, long size);
 
     /** Fills {@code size} bytes at {@code offset} with zeros. */

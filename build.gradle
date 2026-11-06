@@ -63,6 +63,14 @@ neoForge {
             if (project.hasProperty('nvidiumDisable')) {
                 systemProperties.put('nvidium.forceDisable', 'true')
             }
+            // Vulkan backend GPU round-trip test, runs once after device creation (docs/VULKAN_PLAN.md, M3)
+            if (project.hasProperty('vkSelfTest')) {
+                systemProperties.put('nvidium.vkSelfTest', 'true')
+            }
+            // Khronos validation layers (needs the vulkan-validation-layers system package)
+            if (project.hasProperty('vkValidation')) {
+                programArguments.add('--vulkanValidation')
+            }
         }
     }
 

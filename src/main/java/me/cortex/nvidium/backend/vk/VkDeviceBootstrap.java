@@ -231,6 +231,9 @@ public final class VkDeviceBootstrap {
                     caps.conservativeRasterization());
             Nvidium.LOGGER.info("Mesh shader limits: {}", caps.meshLimits());
             Nvidium.LOGGER.info("Vulkan renderer is not implemented yet (plan M3-M5); nvidium stays disabled");
+            if (Boolean.getBoolean("nvidium.vkSelfTest")) {
+                VkSelfTest.run(device, caps);
+            }
         } else {
             Nvidium.LOGGER.warn(
                     "Not all requirements met for nvidium on Vulkan, missing: {}{}",
