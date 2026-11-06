@@ -61,7 +61,7 @@ void main() {
     uint batchIdx = gl_LocalInvocationID.x / 8;
     uint tid = gl_LocalInvocationID.x % 8;
     uint currentSectionIdx = baseIdx + batchIdx;
-    
+
     if (currentSectionIdx >= sectionCount) {
         if (tid == 0) sectionVisibility[int(_visOutBase|currentSectionIdx)] = uint8_t(0);
         gl_MeshVerticesNV[gl_LocalInvocationID.x].gl_Position = vec4(0.0);
