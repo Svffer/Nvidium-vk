@@ -1,6 +1,5 @@
 package me.cortex.nvidium.backend;
 
-import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import net.minecraft.resources.Identifier;
@@ -76,14 +75,16 @@ public interface IRenderBackend {
     // ---------------------------------------------------------------- frame integration
 
     /**
-     * Called from the Sodium {@code renderLayer} hook right after Mojang's render pass for the
-     * terrain target has been opened. Sets up the fixed-function state nvidium expects
-     * (reverse-Z depth test, culling, blending for the translucent layer).
+     * Called from the Sodium {@code renderLayer} hook in place of Sodium's terrain draw, with no Mojang
+     * render pass open. The backend owns the pass from here to {@link #endLayer}: GL opens a Mojang
+     * {@code RenderPass} on the two attachments and sets the fixed-function state nvidium expects
+     * (reverse-Z depth test, culling, blending for the translucent layer); Vulkan records its own dynamic
+     * rendering around the draws, so copies, barriers and dispatches can be interleaved with them.
      */
-    void beginLayer(RenderPass pass, boolean translucent);
+    void beginLayer(GpuTextureView colour, GpuTextureView depth, boolean translucent);
 
-    /** Counterpart of {@link #beginLayer}; called before the Mojang render pass is closed. */
-    void endLayer(RenderPass pass, boolean translucent);
+    /** Counterpart of {@link #beginLayer}; after it Mojang's own passes may be opened again. */
+    void endLayer(boolean translucent);
 
     /**
      * Binds the scene uniform for the following nvidium draws and dispatches. Must be paired

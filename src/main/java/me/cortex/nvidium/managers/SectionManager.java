@@ -59,7 +59,7 @@ public class SectionManager {
 
         this.quadVertexSize = quadVertexSize;
 
-        this.terrainAreana = new BufferArena(device, fallbackMemorySize, quadVertexSize);
+        this.terrainAreana = new BufferArena(device, fallbackMemorySize, quadVertexSize, uploadStream);
         this.regionManager =
                 new RegionManager(device, maxRegions, maxRegions * 200, uploadStream, worldRenderer::enqueueRegionSort);
 

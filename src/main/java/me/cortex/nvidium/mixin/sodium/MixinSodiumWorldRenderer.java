@@ -1,10 +1,6 @@
 package me.cortex.nvidium.mixin.sodium;
 
-import com.mojang.blaze3d.systems.RenderPass;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuSampler;
-import java.util.Optional;
-import java.util.OptionalDouble;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.NvidiumWorldRenderer;
 import me.cortex.nvidium.backend.vk.VkShaderTest;
@@ -73,23 +69,17 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
 
             boolean translucent = pass == DefaultTerrainRenderPasses.TRANSLUCENT;
             var backend = Nvidium.backend;
-            try (RenderPass renderPass = RenderSystem.getDevice()
-                    .createCommandEncoder()
-                    .createRenderPass(
-                            () -> "Nvidium Terrain",
-                            pass.getTarget().getColorTextureView(),
-                            Optional.empty(),
-                            pass.getTarget().getDepthTextureView(),
-                            OptionalDouble.empty())) {
-                backend.beginLayer(renderPass, translucent);
-
+            // No Mojang pass is open here (Sodium would create its own); the backend owns the pass.
+            backend.beginLayer(
+                    pass.getTarget().getColorTextureView(), pass.getTarget().getDepthTextureView(), translucent);
+            try {
                 if (pass == DefaultTerrainRenderPasses.SOLID) {
                     this.getRenderer().renderFrame(pass, viewport, fogParameters, matrices, x, y, z, terrainSampler);
                 } else if (translucent) {
                     this.getRenderer().renderTranslucent(pass, terrainSampler);
                 }
-
-                backend.endLayer(renderPass, translucent);
+            } finally {
+                backend.endLayer(translucent);
             }
         }
     }

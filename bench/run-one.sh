@@ -3,12 +3,14 @@
 # Usage: bench/run-one.sh <label> <opengl|vulkan> <renderDistance> [extra gradle props...]
 #   e.g. bench/run-one.sh gl+nvidium opengl 32
 #        bench/run-one.sh gl+sodium  opengl 32 -PnvidiumDisable=true
-# Env: WARMUP (default 30), DURATION (60), POS (camera "x,y,z,yaw,pitch"), BENCH_WS (Hyprland workspace, 5)
+# Env: WARMUP (default 30), DURATION (60), POS (camera "x,y,z,yaw,pitch"), BENCH_WS (Hyprland workspace, 5),
+#      ATTEMPTS (default 3; use 1 for smoke tests after a code change so a crash is analysed, not retried)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OPTS=run/options.txt
 WARMUP=${WARMUP:-30}
 DURATION=${DURATION:-60}
+ATTEMPTS=${ATTEMPTS:-3}
 POS=${POS:-29,110,-45,45,20}
 label=$1 backend=$2 rd=$3; shift 3
 
@@ -25,7 +27,7 @@ set_opt inactivityFpsLimit '"minimized"' # only throttle when actually minimized
 
 mkdir -p run/logs
 echo "=== $label rd=$rd backend=$backend $*"
-for attempt in 1 2 3; do
+for attempt in $(seq 1 "$ATTEMPTS"); do
   before=$(wc -l < run/bench-results.jsonl 2>/dev/null || echo 0)
   bench/park-window.sh "${BENCH_WS:-5}" &
   parker=$!

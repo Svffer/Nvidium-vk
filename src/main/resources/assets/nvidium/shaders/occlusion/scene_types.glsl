@@ -27,6 +27,9 @@ struct Section {
     ivec4 renderRanges;
     int   translucentQuadCount;
     int   translucencyDataIdx;
+    // Java writes 48-byte records (SectionManager.SECTION_SIZE). The GL pointer layout pads the struct to
+    // its 16-byte alignment on its own; the Vulkan scalar layout does not, so the padding is explicit.
+    ivec2 _padding;
 };
 
 struct Region {

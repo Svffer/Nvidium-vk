@@ -1,7 +1,10 @@
 package me.cortex.nvidium.backend.vk;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import me.cortex.nvidium.backend.IShader;
 import me.cortex.nvidium.backend.IShaderBuilder;
@@ -13,17 +16,22 @@ import org.lwjgl.vulkan.VK12;
 
 /**
  * nvidium's Vulkan "program": one {@code VkShaderModule} per stage, compiled from GLSL with shaderc at
- * construction. The {@code VkPipeline}s that use these modules depend on render state (depth, blend,
- * attachments) and are built by the backend when a draw or dispatch first needs them (plan M5); a
- * program with a COMPUTE stage is a compute pipeline, TASK/MESH/FRAGMENT form a graphics pipeline.
+ * construction, plus the {@code VkPipeline}s built from them on first use. A program with a COMPUTE stage
+ * has one compute pipeline; TASK/MESH/FRAGMENT programs get one graphics pipeline per
+ * {@link VkPipelineFactory.GraphicsState} they are drawn in (plan M5). Everything shares the factory's
+ * pipeline layout.
  */
 public final class VkShader extends TrackedObject implements IShader {
     private final VkContext ctx;
+    private final VkPipelineFactory factory;
     private final Map<ShaderType, Long> modules;
+    private final Map<VkPipelineFactory.GraphicsState, Long> graphicsPipelines = new HashMap<>();
+    private long computePipeline;
     private final String name;
 
-    private VkShader(VkContext ctx, String name, Map<ShaderType, Long> modules) {
+    private VkShader(VkContext ctx, VkPipelineFactory factory, String name, Map<ShaderType, Long> modules) {
         this.ctx = ctx;
+        this.factory = factory;
         this.name = name;
         this.modules = modules;
     }
@@ -48,11 +56,38 @@ public final class VkShader extends TrackedObject implements IShader {
         return name;
     }
 
+    long graphicsPipeline(VkPipelineFactory.GraphicsState state) {
+        assertNotFreed();
+        Long pipeline = graphicsPipelines.get(state);
+        if (pipeline == null) {
+            pipeline = factory.createGraphics(this, state);
+            graphicsPipelines.put(state, pipeline);
+        }
+        return pipeline;
+    }
+
+    long computePipeline() {
+        assertNotFreed();
+        if (computePipeline == 0) {
+            computePipeline = factory.createCompute(this);
+        }
+        return computePipeline;
+    }
+
     @Override
     public void delete() {
         super.free0();
+        List<Long> pipelines = new ArrayList<>(graphicsPipelines.values());
+        if (computePipeline != 0) {
+            pipelines.add(computePipeline);
+        }
+        graphicsPipelines.clear();
+        computePipeline = 0;
         Map<ShaderType, Long> toDestroy = new EnumMap<>(modules);
         ctx.encoder().queueForDestroy(() -> {
+            for (long pipeline : pipelines) {
+                VK12.vkDestroyPipeline(ctx.vkDevice(), pipeline, null);
+            }
             for (long module : toDestroy.values()) {
                 VK12.vkDestroyShaderModule(ctx.vkDevice(), module, null);
             }
@@ -66,13 +101,15 @@ public final class VkShader extends TrackedObject implements IShader {
 
     static final class Builder implements IShaderBuilder {
         private final VkContext ctx;
+        private final VkPipelineFactory factory;
         private final VkSpirvCompiler compiler;
         private final IShaderProcessor processor;
         private final Map<ShaderType, String> sources = new EnumMap<>(ShaderType.class);
         private String name = "nvidium";
 
-        Builder(VkContext ctx, VkSpirvCompiler compiler, IShaderProcessor processor) {
+        Builder(VkContext ctx, VkPipelineFactory factory, VkSpirvCompiler compiler, IShaderProcessor processor) {
             this.ctx = ctx;
+            this.factory = factory;
             this.compiler = compiler;
             this.processor = processor;
         }
@@ -113,7 +150,7 @@ public final class VkShader extends TrackedObject implements IShader {
                 }
                 throw ex;
             }
-            return new VkShader(ctx, name, modules);
+            return new VkShader(ctx, factory, name, modules);
         }
     }
 }

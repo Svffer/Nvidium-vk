@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import me.cortex.nvidium.Nvidium;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
 import net.minecraft.server.MinecraftServer;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
@@ -33,6 +34,9 @@ import net.neoforged.neoforge.common.NeoForge;
  *   nvidium.bench.maxWarmup upper bound for the warm-up in seconds (default 600)
  *   nvidium.bench.duration  seconds to measure (default 60)
  *   nvidium.bench.pos       "x,y,z,yaw,pitch" — default: spawn XZ, y=110, yaw 45, pitch 20
+ *
+ * When measuring starts a screenshot of the main render target is written to
+ * {@code screenshots/bench-<label>-rd<n>.png}, so runs on different backends can be compared visually.
  */
 public final class BenchHarness {
     private static final long NS = 1_000_000_000L;
@@ -118,6 +122,7 @@ public final class BenchHarness {
                     lastFrameNs = 0;
                     warmupTookNs = now - stateStartNs;
                     enter(State.MEASURE, now);
+                    screenshot(mc);
                     Nvidium.LOGGER.info(
                             "[bench] measuring {}s (warm-up took {}s, {} chunks loaded{}; focused={} paused={})",
                             durationNs / NS,
@@ -147,6 +152,17 @@ public final class BenchHarness {
             frameNs[frameCount++] = now - lastFrameNs;
         }
         lastFrameNs = now;
+    }
+
+    private void screenshot(Minecraft mc) {
+        String name = "bench-" + label.replaceAll("[^A-Za-z0-9._-]", "_") + "-rd"
+                + mc.options.getEffectiveRenderDistance() + ".png";
+        try {
+            Screenshot.grab(mc.gameDirectory, name, mc.gameRenderer.mainRenderTarget(), 1, msg -> {});
+            Nvidium.LOGGER.info("[bench] screenshot screenshots/{}", name);
+        } catch (RuntimeException ex) {
+            Nvidium.LOGGER.warn("[bench] screenshot failed", ex);
+        }
     }
 
     private void enter(State s, long now) {

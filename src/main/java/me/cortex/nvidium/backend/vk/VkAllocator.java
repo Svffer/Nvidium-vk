@@ -1,6 +1,8 @@
 package me.cortex.nvidium.backend.vk;
 
+import java.nio.IntBuffer;
 import java.nio.LongBuffer;
+import me.cortex.nvidium.Nvidium;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -23,8 +25,12 @@ import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties;
  * least invasive option. Lives as long as the Vulkan render backend.
  */
 public final class VkAllocator implements AutoCloseable {
-    /** Usage of every device buffer nvidium creates: shader pointers, copies, fills, indirect commands. */
+    /**
+     * Usage of every device buffer nvidium creates: shader pointers, copies, fills, indirect commands, and the
+     * scene UBO (the scene buffer is an ordinary device buffer bound through a uniform-buffer descriptor).
+     */
     public static final int DEVICE_BUFFER_USAGE = VK12.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+            | VK12.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
             | VK12.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
             | VK12.VK_BUFFER_USAGE_TRANSFER_SRC_BIT
             | VK12.VK_BUFFER_USAGE_TRANSFER_DST_BIT
@@ -61,9 +67,18 @@ public final class VkAllocator implements AutoCloseable {
         VK12.vkGetPhysicalDeviceMemoryProperties(device.getPhysicalDevice(), memoryProperties);
     }
 
-    /** Device-local buffer with a device address. */
-    public Allocation createDeviceBuffer(long size) {
-        return create(size, DEVICE_BUFFER_USAGE, 0, true);
+    /**
+     * Device-local buffer with a device address, or {@code null} if it does not fit in device-local memory.
+     * Device buffers are read by every shader of every frame, so the caller decides what to do about a
+     * shortfall (free deferred memory and retry, or {@link #createDeviceBufferAnywhere}).
+     */
+    public Allocation tryCreateDeviceBuffer(long size) {
+        return create(size, DEVICE_BUFFER_USAGE, 0, true, true);
+    }
+
+    /** Last resort: a device buffer in whatever memory VMA finds; terrain draws from host memory are ~10x slower. */
+    public Allocation createDeviceBufferAnywhere(long size) {
+        return create(size, DEVICE_BUFFER_USAGE, 0, true, false);
     }
 
     /**
@@ -75,10 +90,10 @@ public final class VkAllocator implements AutoCloseable {
                 | (forDownload
                         ? Vma.VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT
                         : Vma.VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-        return create(size, STAGING_BUFFER_USAGE, flags, false);
+        return create(size, STAGING_BUFFER_USAGE, flags, false, false);
     }
 
-    private Allocation create(long size, int usage, int allocFlags, boolean deviceAddress) {
+    private Allocation create(long size, int usage, int allocFlags, boolean deviceAddress, boolean requireDeviceLocal) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             VkBufferCreateInfo bufferInfo = VkBufferCreateInfo.calloc(stack)
                     .sType$Default()
@@ -91,7 +106,16 @@ public final class VkAllocator implements AutoCloseable {
             LongBuffer pBuffer = stack.callocLong(1);
             PointerBuffer pAllocation = stack.callocPointer(1);
             VmaAllocationInfo info = VmaAllocationInfo.calloc(stack);
-            check(Vma.vmaCreateBuffer(allocator, bufferInfo, allocInfo, pBuffer, pAllocation, info), "vmaCreateBuffer");
+            if (requireDeviceLocal) {
+                // AUTO alone falls back to host memory when the device heap is short; make that explicit.
+                allocInfo.requiredFlags(VK12.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            }
+            int result = Vma.vmaCreateBuffer(allocator, bufferInfo, allocInfo, pBuffer, pAllocation, info);
+            if (requireDeviceLocal
+                    && (result == VK12.VK_ERROR_OUT_OF_DEVICE_MEMORY || result == VK12.VK_ERROR_OUT_OF_HOST_MEMORY)) {
+                return null;
+            }
+            check(result, "vmaCreateBuffer");
             long vkBuffer = pBuffer.get(0);
             long address = 0;
             if (deviceAddress) {
@@ -101,6 +125,17 @@ public final class VkAllocator implements AutoCloseable {
                 if (address == 0) {
                     throw new IllegalStateException("vkGetBufferDeviceAddress returned 0");
                 }
+            }
+            if (size >= 64L << 20) {
+                // Large arenas must land in VRAM; a fallback to host memory would silently cost 10x in draws.
+                IntBuffer flags = stack.callocInt(1);
+                Vma.vmaGetAllocationMemoryProperties(allocator, pAllocation.get(0), flags);
+                Nvidium.LOGGER.info(
+                        "nvidium Vulkan: {} MiB buffer in memory type {} (device-local={}, host-visible={})",
+                        size >> 20,
+                        info.memoryType(),
+                        (flags.get(0) & VK12.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0,
+                        (flags.get(0) & VK12.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0);
             }
             return new Allocation(vkBuffer, pAllocation.get(0), size, address, info.pMappedData());
         }

@@ -223,14 +223,15 @@ public final class VkDeviceBootstrap {
     }
 
     /**
-     * Called by the mixin when Mojang's {@code createDevice} returns. Logs the outcome. Until the Vulkan
-     * renderer exists (plan M3–M5) nvidium stays disabled on this backend: {@link Nvidium#backend} is left
-     * {@code null}, exactly as before M2.
+     * Called by the mixin when Mojang's {@code createDevice} returns. Creates the Vulkan render backend and
+     * enables nvidium through {@link Nvidium#initBackend} when every requirement is met (plan M5), exactly as
+     * the GL device mixin does for OpenGL.
      */
     public static void onDeviceCreated(GpuDevice device) {
         VkDeviceCapabilities caps = capabilities;
         if (caps == null) {
             Nvidium.LOGGER.warn("Vulkan device created without nvidium's bootstrap hook; disabling nvidium");
+            Nvidium.initBackend(null);
             return;
         }
         Set<String> enabled = Set.of();
@@ -238,24 +239,26 @@ public final class VkDeviceBootstrap {
             enabled = vk.getDeviceInfo().underlyingExtensions();
         }
         boolean meshEnabled = enabled.contains(EXTMeshShader.VK_EXT_MESH_SHADER_EXTENSION_NAME + " (D)");
-        if (caps.meetsRequirements() && meshEnabled) {
+        VkContext ctx = VkContext.from(device);
+        if (caps.meetsRequirements() && meshEnabled && ctx != null) {
             Nvidium.LOGGER.info(
-                    "All capabilities met (Vulkan): VK_EXT_mesh_shader, bufferDeviceAddress, int64/int16/int8, "
-                            + "8/16-bit storage, scalarBlockLayout; optional: barycentric={}, "
-                            + "representativeFragmentTest={}, conservativeRasterization={}",
+                    "Vulkan device: VK_EXT_mesh_shader, bufferDeviceAddress, int64/int16/int8, 8/16-bit storage, "
+                            + "scalarBlockLayout; optional: barycentric={}, representativeFragmentTest={}, "
+                            + "conservativeRasterization={}",
                     caps.fragmentShaderBarycentric(),
                     caps.representativeFragmentTest(),
                     caps.conservativeRasterization());
             Nvidium.LOGGER.info("Mesh shader limits: {}", caps.meshLimits());
-            Nvidium.LOGGER.info("Vulkan renderer is not implemented yet (plan M3-M5); nvidium stays disabled");
             if (Boolean.getBoolean("nvidium.vkSelfTest")) {
                 VkSelfTest.run(device, caps);
             }
+            Nvidium.initBackend(new VkRenderBackend(ctx, caps));
         } else {
             Nvidium.LOGGER.warn(
                     "Not all requirements met for nvidium on Vulkan, missing: {}{}",
                     caps.missing(),
                     meshEnabled ? "" : " (VK_EXT_mesh_shader not enabled on the device)");
+            Nvidium.initBackend(null);
         }
     }
 }

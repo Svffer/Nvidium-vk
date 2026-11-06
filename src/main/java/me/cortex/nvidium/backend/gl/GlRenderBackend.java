@@ -23,6 +23,8 @@ import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTextureView;
+import java.util.Optional;
+import java.util.OptionalDouble;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.backend.*;
 import me.cortex.nvidium.backend.gl.buffers.GlClientMappedBuffer;
@@ -52,6 +54,9 @@ public class GlRenderBackend implements IRenderBackend {
     private static final boolean DEBUG_WRITE_DEPTH = false;
 
     private final boolean supportsSparseBuffers;
+
+    /** The Mojang pass opened by {@link #beginLayer}, closed by {@link #endLayer}. */
+    private RenderPass layerPass;
 
     private GlRenderBackend(boolean supportsSparseBuffers) {
         this.supportsSparseBuffers = supportsSparseBuffers;
@@ -181,7 +186,15 @@ public class GlRenderBackend implements IRenderBackend {
     // ---------------------------------------------------------------- frame integration
 
     @Override
-    public void beginLayer(RenderPass pass, boolean translucent) {
+    public void beginLayer(GpuTextureView colour, GpuTextureView depth, boolean translucent) {
+        if (layerPass != null) {
+            throw new IllegalStateException("nvidium: beginLayer while a layer is open");
+        }
+        // Mojang's pass binds the attachments (and tracks state for its own draws); nvidium then drives GL directly.
+        layerPass = RenderSystem.getDevice()
+                .createCommandEncoder()
+                .createRenderPass(() -> "Nvidium Terrain", colour, Optional.empty(), depth, OptionalDouble.empty());
+
         // Invalidate lastProgram to prevent B3D caching bad program
         ((GlCommandEncoderAccessor)
                         ((CommandEncoderAccessor) RenderSystem.getDevice().createCommandEncoder())
@@ -205,10 +218,15 @@ public class GlRenderBackend implements IRenderBackend {
     }
 
     @Override
-    public void endLayer(RenderPass pass, boolean translucent) {
+    public void endLayer(boolean translucent) {
         if (translucent) {
             GlStateManager._disableBlend(0);
         }
+        if (layerPass == null) {
+            throw new IllegalStateException("nvidium: endLayer without beginLayer");
+        }
+        layerPass.close();
+        layerPass = null;
     }
 
     @Override
