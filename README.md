@@ -3,17 +3,6 @@
 [![Patreon](https://img.shields.io/badge/Patreon-support%20the%20fork-f96854?logo=patreon)](https://www.patreon.com/cw/svfr)
 [![License: LGPL-3.0](https://img.shields.io/badge/license-LGPL--3.0-blue)](LICENSE.txt)
 
-## Requirements
-
-- An **NVIDIA GPU, Turing (GTX 16xx / RTX 20xx) or newer**, with a current driver. Both backends need
-  mesh shaders; the OpenGL backend additionally needs `GL_NV_*` extensions that only NVIDIA ships. Other
-  vendors are out of scope.
-- Minecraft **26.2** with **NeoForge 26.2.0.93** (the Vulkan backend hooks private parts of Mojang's
-  Vulkan code and is pinned to this version).
-- **Sodium 0.9.2+mc26.2** (NeoForge build).
-- On Vulkan: Mojang's Vulkan backend selected in *Video Settings* (`preferredGraphicsBackend`). The
-  `neoloadingvulkanfix` mod is recommended with NeoForge's early loading screen.
-
 ## What it is
 
 Nvidium, the GPU-driven terrain renderer for Sodium on NVIDIA cards, ported to **NeoForge 26.2** and
@@ -29,6 +18,17 @@ it there (mesh shaders, GPU occlusion culling, one indirect draw for the terrain
 distances at frame rates vanilla Sodium cannot reach. Upstream is OpenGL-only and uses NVIDIA extensions;
 since Minecraft 26.x can run on Vulkan, where those extensions do not exist, this fork adds a second backend
 built on `VK_EXT_mesh_shader` and buffer device addresses on top of Mojang's own Vulkan renderer.
+
+## Requirements
+
+- An **NVIDIA GPU, Turing (GTX 16xx / RTX 20xx) or newer**, with a current driver. Both backends need
+  mesh shaders; the OpenGL backend additionally needs `GL_NV_*` extensions that only NVIDIA ships. Other
+  vendors are out of scope.
+- Minecraft **26.2** with **NeoForge 26.2.0.93** (the Vulkan backend hooks private parts of Mojang's
+  Vulkan code and is pinned to this version).
+- **Sodium 0.9.2+mc26.2** (NeoForge build).
+- On Vulkan: Mojang's Vulkan backend selected in *Video Settings* (`preferredGraphicsBackend`). The
+  `neoloadingvulkanfix` mod is recommended with NeoForge's early loading screen.
 
 ## Installation
 
