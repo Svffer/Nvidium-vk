@@ -1,7 +1,7 @@
 modLoader = "javafml"
 loaderVersion = "[4,)"
 license = "LGPL-3.0"
-issueTrackerURL = "https://github.com/__GITHUB_OWNER__/Nvidium-vk/issues"
+issueTrackerURL = "https://github.com/Svffer/Nvidium-vk/issues"
 
 [[mods]]
 modId = "nvidium"
@@ -9,7 +9,7 @@ version = "${version}"
 displayName = "Nvidium-vk"
 authors = "Cortex; NeoForge port and Vulkan backend: Vladimir Filatov (svfr), Claude (Anthropic)"
 credits = "drouarb"
-displayURL = "https://github.com/__GITHUB_OWNER__/Nvidium-vk"
+displayURL = "https://github.com/Svffer/Nvidium-vk"
 iconFile = "assets/nvidium/nvidium.png"
 description = '''
 Replacement rendering engine for Sodium (NVIDIA GPUs). NeoForge port of nvidium with an additional

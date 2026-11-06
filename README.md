@@ -32,7 +32,7 @@ built on `VK_EXT_mesh_shader` and buffer device addresses on top of Mojang's own
 
 ## Installation
 
-Drop the jar from the [releases page](https://github.com/__GITHUB_OWNER__/Nvidium-vk/releases) into
+Drop the jar from the [releases page](https://github.com/Svffer/Nvidium-vk/releases) into
 `mods/` next to Sodium. Nothing else to configure: when the game starts, nvidium checks the GPU and the
 active graphics backend and logs either `Enabling Nvidium` or the missing requirement. In F3, the right
 column shows `Using nvidium renderer: <version>` and the GPU time of each nvidium pass. Nvidium's own
