@@ -35,6 +35,8 @@ import net.neoforged.neoforge.common.NeoForge;
  *   nvidium.bench.duration  seconds to measure (default 60)
  *   nvidium.bench.pos       "x,y,z,yaw,pitch" — default: spawn XZ, y=110, yaw 45, pitch 20
  *   nvidium.bench.f3        show the F3 overlay while measuring, so the screenshot carries the nvidium statistics
+ *   nvidium.bench.travel    memory soak: while measuring, teleport 48 blocks along +X every 2 s (chunks stream in,
+ *                           regions get evicted, the arena grows) and log nvidium's memory every 10 s (plan M7)
  *   nvidium.bench.stress    during warm-up: resize the window (5 s), restore it (9 s), toggle fullscreen on
  *                           (13 s) and off (17 s), reload resource packs (21 s) — swapchain and render-target
  *                           recreation plus a full shader/renderer reload (plan M6)
@@ -63,6 +65,10 @@ public final class BenchHarness {
     private final long durationNs = Long.getLong("nvidium.bench.duration", 60) * NS;
     private final boolean stress = Boolean.getBoolean("nvidium.bench.stress");
     private final boolean f3 = Boolean.getBoolean("nvidium.bench.f3");
+    private final boolean travel = Boolean.getBoolean("nvidium.bench.travel");
+    private long lastTravelNs;
+    private long lastMemoryLogNs;
+    private int travelX;
     private boolean screenshotTaken;
     private int stressStep;
     private static final long STABLE_NS = 5 * NS;
@@ -151,6 +157,21 @@ public final class BenchHarness {
                     screenshotTaken = true;
                     screenshot(mc);
                 }
+                if (travel) {
+                    if (now - lastTravelNs >= 2 * NS) {
+                        lastTravelNs = now;
+                        travelX += 48;
+                        String[] p = position.split(" ");
+                        runCommands(
+                                mc.getSingleplayerServer(),
+                                "tp @a " + (Integer.parseInt(p[0]) + travelX) + " " + p[1] + " " + p[2] + " " + p[3]
+                                        + " " + p[4]);
+                    }
+                    if (now - lastMemoryLogNs >= 10 * NS) {
+                        lastMemoryLogNs = now;
+                        logMemory(mc);
+                    }
+                }
                 if (now - stateStartNs >= durationNs) {
                     enter(State.DONE, now);
                     report(mc);
@@ -199,6 +220,28 @@ public final class BenchHarness {
             }
             default -> {}
         }
+    }
+
+    private void logMemory(Minecraft mc) {
+        var renderer = ((me.cortex.nvidium.sodiumCompat.INvidiumWorldRendererGetter)
+                        net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer.instance())
+                .getRenderer();
+        if (renderer == null || Nvidium.backend == null) {
+            Nvidium.LOGGER.info("[bench] memory: nvidium inactive");
+            return;
+        }
+        var arena = renderer.getSectionManager().terrainAreana;
+        Nvidium.LOGGER.info(
+                "[bench] memory: travelled {} blocks, chunks {}, regions {}, arena {}/{} MiB used/allocated (limit {} MiB), "
+                        + "device free {} MiB, jvm {} MiB",
+                travelX,
+                mc.level.getChunkSource().getLoadedChunksCount(),
+                renderer.getSectionManager().getRegionManager().regionCount(),
+                arena.getUsedMB(),
+                arena.getAllocatedMB(),
+                renderer.getMaxGeometryMemory(),
+                Nvidium.backend.getAvailableDeviceMemoryMB(),
+                (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) >> 20);
     }
 
     private void screenshot(Minecraft mc) {

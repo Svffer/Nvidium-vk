@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# M0 benchmark matrix: OpenGL+Sodium / OpenGL+Nvidium / Vulkan+Sodium at several render distances.
+# Benchmark matrix: OpenGL+Sodium / OpenGL+Nvidium / Vulkan+Sodium / Vulkan+Nvidium at several render distances.
 # Usage: bench/run-matrix.sh [distances...]   (default: 16 24 32; vanilla max is 32)
 # Results: run/bench-results.jsonl ; summary printed by bench/summary.py
 set -euo pipefail
@@ -22,5 +22,6 @@ for rd in "${DISTANCES[@]}"; do
   run_one gl+sodium  opengl "$rd" -PnvidiumDisable=true
   run_one gl+nvidium opengl "$rd"
   run_one vk+sodium  vulkan "$rd"
+  run_one vk+nvidium vulkan "$rd"
 done
 python3 -I bench/summary.py run/bench-results.jsonl

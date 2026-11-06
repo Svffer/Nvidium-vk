@@ -4,13 +4,16 @@
 #   e.g. bench/run-one.sh gl+nvidium opengl 32
 #        bench/run-one.sh gl+sodium  opengl 32 -PnvidiumDisable=true
 # Env: WARMUP (default 30), DURATION (60), POS (camera "x,y,z,yaw,pitch"), BENCH_WS (Hyprland workspace, 5),
-#      ATTEMPTS (default 3; use 1 for smoke tests after a code change so a crash is analysed, not retried)
+#      ATTEMPTS (default 3; use 1 for smoke tests after a code change so a crash is analysed, not retried),
+#      TIMEOUT (seconds per attempt, default WARMUP+DURATION+300; the client can hang before the world loads,
+#               e.g. NeoForge's early GLX loading window vs Vulkan: "X Error ... GLXBadDrawable")
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OPTS=run/options.txt
 WARMUP=${WARMUP:-30}
 DURATION=${DURATION:-60}
 ATTEMPTS=${ATTEMPTS:-3}
+TIMEOUT=${TIMEOUT:-$((WARMUP + DURATION + 300))}
 POS=${POS:-29,110,-45,45,20}
 label=$1 backend=$2 rd=$3; shift 3
 
@@ -31,8 +34,9 @@ for attempt in $(seq 1 "$ATTEMPTS"); do
   before=$(wc -l < run/bench-results.jsonl 2>/dev/null || echo 0)
   bench/park-window.sh "${BENCH_WS:-5}" &
   parker=$!
-  ./gradlew runClient --no-daemon -q -PbenchLabel="$label" -PbenchWarmup="$WARMUP" -PbenchDuration="$DURATION" -PbenchPos="$POS" "$@" \
-     > "run/logs/bench-$label-rd$rd.out" 2>&1 || echo "    (gradle exit $? — see run/logs/bench-$label-rd$rd.out)"
+  timeout --kill-after=15 "$TIMEOUT" \
+     ./gradlew runClient --no-daemon -q -PbenchLabel="$label" -PbenchWarmup="$WARMUP" -PbenchDuration="$DURATION" -PbenchPos="$POS" "$@" \
+     > "run/logs/bench-$label-rd$rd.out" 2>&1 || echo "    (gradle exit $? — see run/logs/bench-$label-rd$rd.out; 124 = ${TIMEOUT}s timeout)"
   wait "$parker" 2>/dev/null || true
   if [ "$(wc -l < run/bench-results.jsonl 2>/dev/null || echo 0)" -gt "$before" ]; then break; fi
   echo "    no result written (attempt $attempt) — retrying"

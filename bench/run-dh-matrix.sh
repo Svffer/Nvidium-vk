@@ -46,5 +46,6 @@ for lod in "${RADII[@]}"; do
   run_one "dh$lod+gl+sodium"  opengl "$lod" -PnvidiumDisable=true
   run_one "dh$lod+gl+nvidium" opengl "$lod"
   run_one "dh$lod+vk+sodium"  vulkan "$lod"
+  run_one "dh$lod+vk+nvidium" vulkan "$lod"
 done
 python3 -I bench/summary.py run/bench-results.jsonl
