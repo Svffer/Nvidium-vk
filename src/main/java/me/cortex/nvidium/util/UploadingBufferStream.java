@@ -1,16 +1,15 @@
 package me.cortex.nvidium.util;
 
+import static me.cortex.nvidium.util.SegmentedManager.SIZE_LIMIT;
+
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import me.cortex.nvidium.backend.Barrier;
 import me.cortex.nvidium.backend.IBuffer;
 import me.cortex.nvidium.backend.IClientMappedBuffer;
 import me.cortex.nvidium.backend.IFence;
 import me.cortex.nvidium.backend.IRenderBackend;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-
-import static me.cortex.nvidium.util.SegmentedManager.SIZE_LIMIT;
 
 /**
  * Host → device streaming through one persistently mapped staging buffer. Allocations are
@@ -35,6 +34,7 @@ public class UploadingBufferStream {
 
     private long caddr = -1;
     private long offset = 0;
+
     public long upload(IBuffer buffer, long destOffset, long size) {
         if (size > Integer.MAX_VALUE || size == 0 || size < 0) {
             throw new IllegalArgumentException();
@@ -42,14 +42,14 @@ public class UploadingBufferStream {
         if (destOffset < 0) {
             throw new IllegalStateException();
         }
-        if (destOffset+size > buffer.getSize()) {
+        if (destOffset + size > buffer.getSize()) {
             throw new IllegalStateException();
         }
 
         long addr;
         if (this.caddr == -1 || !this.allocationArena.expand(this.caddr, (int) size)) {
             this.caddr = this.allocationArena.alloc((int) size);
-            //If the upload stream is full, flush it and empty it
+            // If the upload stream is full, flush it and empty it
             if (this.caddr == SIZE_LIMIT) {
                 this.commit();
                 int attempts = 10;
@@ -59,13 +59,14 @@ public class UploadingBufferStream {
                     this.caddr = this.allocationArena.alloc((int) size);
                 }
                 if (this.caddr == SIZE_LIMIT) {
-                    throw new IllegalStateException("Could not allocate memory segment big enough for upload even after force flush");
+                    throw new IllegalStateException(
+                            "Could not allocate memory segment big enough for upload even after force flush");
                 }
             }
             this.flushList.add(this.caddr);
             this.offset = size;
             addr = this.caddr;
-        } else {//Could expand the allocation so just update it
+        } else { // Could expand the allocation so just update it
             addr = this.caddr + this.offset;
             this.offset += size;
         }
@@ -79,9 +80,8 @@ public class UploadingBufferStream {
         return this.uploadBuffer.clientAddress() + addr;
     }
 
-
     public void commit() {
-        //First flush all the allocations and enqueue them to be freed
+        // First flush all the allocations and enqueue them to be freed
         {
             for (long alloc : flushList) {
                 this.backend.flushMapped(this.uploadBuffer, alloc, this.allocationArena.getSize(alloc));
@@ -90,9 +90,10 @@ public class UploadingBufferStream {
             this.flushList.clear();
         }
         this.backend.barrier(Barrier.CLIENT_MAPPED_BUFFER);
-        //Execute all the copies
+        // Execute all the copies
         for (var entry : this.uploadList) {
-            this.backend.copyBuffer(this.uploadBuffer, entry.target, entry.uploadOffset, entry.targetOffset, entry.size);
+            this.backend.copyBuffer(
+                    this.uploadBuffer, entry.target, entry.uploadOffset, entry.targetOffset, entry.size);
         }
         this.uploadList.clear();
 
@@ -110,12 +111,12 @@ public class UploadingBufferStream {
         }
 
         while (!this.frames.isEmpty()) {
-            //Since the ordering of frames is the ordering of the gl commands if we encounter an unsignaled fence
+            // Since the ordering of frames is the ordering of the gl commands if we encounter an unsignaled fence
             // all the other fences should also be unsignaled
             if (!this.frames.peek().fence.signaled()) {
                 break;
             }
-            //Release all the allocations from the frame
+            // Release all the allocations from the frame
             var frame = this.frames.pop();
             frame.allocations.forEach(allocationArena::free);
             frame.fence.free();
@@ -125,10 +126,10 @@ public class UploadingBufferStream {
     public void delete() {
         TickableManager.remove(this);
         this.uploadBuffer.delete();
-        this.frames.forEach(frame->frame.fence.free());
+        this.frames.forEach(frame -> frame.fence.free());
     }
 
     private record UploadFrame(IFence fence, LongArrayList allocations) {}
-    private record UploadData(IBuffer target, long uploadOffset, long targetOffset, long size) {}
 
+    private record UploadData(IBuffer target, long uploadOffset, long targetOffset, long size) {}
 }

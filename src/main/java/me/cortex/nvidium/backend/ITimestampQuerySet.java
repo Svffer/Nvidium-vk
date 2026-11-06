@@ -11,7 +11,10 @@ public interface ITimestampQuerySet {
     }
 
     void capture(int metadata);
+
     void download(TimingDataConsumer consumer);
+
     void tick();
+
     void free();
 }

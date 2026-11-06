@@ -1,5 +1,7 @@
 package me.cortex.nvidium.renderers;
 
+import static me.cortex.nvidium.backend.ShaderType.*;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSampler;
@@ -12,8 +14,6 @@ import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 
-import static me.cortex.nvidium.backend.ShaderType.*;
-
 public class PrimaryTerrainRasterizer extends Phase {
     private final IShader shader;
 
@@ -22,10 +22,13 @@ public class PrimaryTerrainRasterizer extends Phase {
         this.shader = backend.createShader()
                 .addSource(TASK, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/task.glsl")))
                 .addSource(MESH, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/mesh.glsl")))
-                .addSource(FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/frag.frag"))).compile();
+                .addSource(
+                        FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/frag.frag")))
+                .compile();
     }
 
-    public void raster(TerrainRenderPass pass, int regionCount, IDeviceMappedBuffer commandBuffer, GpuSampler terrainSampler) {
+    public void raster(
+            TerrainRenderPass pass, int regionCount, IDeviceMappedBuffer commandBuffer, GpuSampler terrainSampler) {
         GpuTextureView blockTexture = pass.getAtlas();
         GpuTextureView lightTexture = Minecraft.getInstance().gameRenderer.lightmap();
 

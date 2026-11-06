@@ -1,5 +1,21 @@
 package me.cortex.nvidium.backend.gl;
 
+import static org.lwjgl.opengl.ARBDirectStateAccess.*;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL30C.GL_R8UI;
+import static org.lwjgl.opengl.GL30C.GL_RED_INTEGER;
+import static org.lwjgl.opengl.GL42.*;
+import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
+import static org.lwjgl.opengl.GL43C.glDispatchCompute;
+import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
+import static org.lwjgl.opengl.NVMeshShader.glDrawMeshTasksNV;
+import static org.lwjgl.opengl.NVMeshShader.glMultiDrawMeshTasksIndirectNV;
+import static org.lwjgl.opengl.NVRepresentativeFragmentTest.GL_REPRESENTATIVE_FRAGMENT_TEST_NV;
+import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_ADDRESS_NV;
+import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
+import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.*;
+import static org.lwjgl.opengl.NVXGPUMemoryInfo.GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
+
 import com.mojang.blaze3d.opengl.GlSampler;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.opengl.GlTexture;
@@ -18,22 +34,6 @@ import net.minecraft.util.Util;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL33C;
 
-import static org.lwjgl.opengl.ARBDirectStateAccess.*;
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL30C.GL_R8UI;
-import static org.lwjgl.opengl.GL30C.GL_RED_INTEGER;
-import static org.lwjgl.opengl.GL42.*;
-import static org.lwjgl.opengl.GL43C.GL_SHADER_STORAGE_BARRIER_BIT;
-import static org.lwjgl.opengl.GL43C.glDispatchCompute;
-import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
-import static org.lwjgl.opengl.NVMeshShader.glDrawMeshTasksNV;
-import static org.lwjgl.opengl.NVMeshShader.glMultiDrawMeshTasksIndirectNV;
-import static org.lwjgl.opengl.NVRepresentativeFragmentTest.GL_REPRESENTATIVE_FRAGMENT_TEST_NV;
-import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_ADDRESS_NV;
-import static org.lwjgl.opengl.NVUniformBufferUnifiedMemory.GL_UNIFORM_BUFFER_UNIFIED_NV;
-import static org.lwjgl.opengl.NVVertexBufferUnifiedMemory.*;
-import static org.lwjgl.opengl.NVXGPUMemoryInfo.GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
-
 /**
  * The original NVIDIA-OpenGL implementation of nvidium: mesh shaders ({@code NV_mesh_shader}),
  * bindless multi-draw-indirect, unified-memory pointers ({@code NV_shader_buffer_load}) and the
@@ -47,6 +47,7 @@ public class GlRenderBackend implements IRenderBackend {
 
     /** 0: no debug, 1: show region occlusion boxes, 2: show section occlusion boxes. */
     private static final int DEBUG_RENDER_LEVEL = 0;
+
     private static final boolean DEBUG_WRITE_DEPTH = false;
 
     private final boolean supportsSparseBuffers;
@@ -61,18 +62,19 @@ public class GlRenderBackend implements IRenderBackend {
      */
     public static GlRenderBackend tryCreate() {
         var cap = GL.getCapabilities();
-        boolean supported = cap.GL_NV_mesh_shader &&
-                cap.GL_NV_uniform_buffer_unified_memory &&
-                cap.GL_NV_vertex_buffer_unified_memory &&
-                cap.GL_NV_representative_fragment_test &&
-                cap.GL_ARB_sparse_buffer &&
-                cap.GL_NV_bindless_multi_draw_indirect;
+        boolean supported = cap.GL_NV_mesh_shader
+                && cap.GL_NV_uniform_buffer_unified_memory
+                && cap.GL_NV_vertex_buffer_unified_memory
+                && cap.GL_NV_representative_fragment_test
+                && cap.GL_ARB_sparse_buffer
+                && cap.GL_NV_bindless_multi_draw_indirect;
         if (!supported) {
             return null;
         }
         boolean sparse = true;
         if (Util.getPlatform() == Util.OS.LINUX) {
-            Nvidium.LOGGER.warn("Linux currently uses fallback terrain buffer due to driver inconsistencies, expect increase vram usage");
+            Nvidium.LOGGER.warn(
+                    "Linux currently uses fallback terrain buffer due to driver inconsistencies, expect increase vram usage");
             sparse = false;
         }
         return new GlRenderBackend(sparse);
@@ -171,8 +173,8 @@ public class GlRenderBackend implements IRenderBackend {
     public void beginLayer(RenderPass pass, boolean translucent) {
         // Invalidate lastProgram to prevent B3D caching bad program
         ((GlCommandEncoderAccessor)
-                ((CommandEncoderAccessor) RenderSystem.getDevice().createCommandEncoder())
-                        .nvidium$getCommandEncoderBackend())
+                        ((CommandEncoderAccessor) RenderSystem.getDevice().createCommandEncoder())
+                                .nvidium$getCommandEncoderBackend())
                 .nvidium$setLastProgram(null);
 
         GlStateManager._disableScissorTest();
@@ -185,11 +187,7 @@ public class GlRenderBackend implements IRenderBackend {
         if (translucent) {
             GlStateManager._enableBlend(0);
             GlStateManager._blendFuncSeparate(
-                    GL33C.GL_SRC_ALPHA,
-                    GL33C.GL_ONE_MINUS_SRC_ALPHA,
-                    GL33C.GL_ONE,
-                    GL33C.GL_ONE_MINUS_SRC_ALPHA
-            );
+                    GL33C.GL_SRC_ALPHA, GL33C.GL_ONE_MINUS_SRC_ALPHA, GL33C.GL_ONE, GL33C.GL_ONE_MINUS_SRC_ALPHA);
         } else {
             GlStateManager._disableBlend(0);
         }
@@ -208,7 +206,7 @@ public class GlRenderBackend implements IRenderBackend {
         glEnableClientState(GL_VERTEX_ATTRIB_ARRAY_UNIFIED_NV);
         glEnableClientState(GL_ELEMENT_ARRAY_UNIFIED_NV);
         glEnableClientState(GL_DRAW_INDIRECT_UNIFIED_NV);
-        //Bind the uniform, it doesnt get wiped between shader changes
+        // Bind the uniform, it doesnt get wiped between shader changes
         glBufferAddressRangeNV(GL_UNIFORM_BUFFER_ADDRESS_NV, 0, sceneUniform.getDeviceAddress(), sceneSize);
         glEnable(GL_DEPTH_TEST);
     }
@@ -224,7 +222,7 @@ public class GlRenderBackend implements IRenderBackend {
 
     @Override
     public void beginOcclusionRaster() {
-        //NOTE: For GL_REPRESENTATIVE_FRAGMENT_TEST_NV to work, depth testing must be disabled, or depthMask = false
+        // NOTE: For GL_REPRESENTATIVE_FRAGMENT_TEST_NV to work, depth testing must be disabled, or depthMask = false
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_GEQUAL);
         glDepthMask(false);
@@ -252,7 +250,8 @@ public class GlRenderBackend implements IRenderBackend {
         GlStateManager._activeTexture(GL33C.GL_TEXTURE0 + slot);
         GlStateManager._bindTexture(tex.glId());
         GlStateManager._texParameter(GL33C.GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, texView.baseMipLevel());
-        GlStateManager._texParameter(GL33C.GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, texView.baseMipLevel() + texView.mipLevels() - 1);
+        GlStateManager._texParameter(
+                GL33C.GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, texView.baseMipLevel() + texView.mipLevels() - 1);
         GL33C.glBindSampler(slot, ((GlSampler) sampler).getId());
     }
 

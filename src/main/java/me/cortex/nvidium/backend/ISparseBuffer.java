@@ -6,7 +6,10 @@ package me.cortex.nvidium.backend;
  */
 public interface ISparseBuffer extends IDeviceMappedBuffer {
     long pageSize();
+
     void ensureAllocated(long addr, long size);
+
     void deallocate(long addr, long size);
+
     int getPagesCommitted();
 }

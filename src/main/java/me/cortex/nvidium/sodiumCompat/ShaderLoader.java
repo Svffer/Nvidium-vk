@@ -1,6 +1,9 @@
 package me.cortex.nvidium.sodiumCompat;
 
 import com.mojang.blaze3d.preprocessor.GlslPreprocessor;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.Optional;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.config.StatisticsLoggingLevel;
 import me.cortex.nvidium.config.TranslucencySortingLevel;
@@ -13,10 +16,6 @@ import org.apache.commons.io.IOUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.util.Optional;
-
 public class ShaderLoader {
     public static String parse(Identifier path) {
         return parse(path, ShaderDefines.builder());
@@ -28,9 +27,8 @@ public class ShaderLoader {
         }
 
         for (int i = 1; i <= Nvidium.config.statistics_level.ordinal(); i++) {
-            builder.define("STATISTICS_"+StatisticsLoggingLevel.values()[i].name());
+            builder.define("STATISTICS_" + StatisticsLoggingLevel.values()[i].name());
         }
-
 
         if (Nvidium.config.translucency_sorting_level.ordinal() >= TranslucencySortingLevel.SECTIONS.ordinal()) {
             builder.define("TRANSLUCENCY_SORTING_SECTIONS");

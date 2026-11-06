@@ -1,5 +1,7 @@
 package me.cortex.nvidium.renderers;
 
+import static me.cortex.nvidium.backend.ShaderType.*;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSampler;
@@ -13,23 +15,30 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderDefines;
 import net.minecraft.resources.Identifier;
 
-import static me.cortex.nvidium.backend.ShaderType.*;
-
 public class TranslucentTerrainRasterizer extends Phase {
     private final IShader shader;
 
     public TranslucentTerrainRasterizer(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
-                .addSource(TASK, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/task.glsl")))
-                .addSource(MESH, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/mesh.glsl")))
-                .addSource(FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/frag.frag"), ShaderDefines.builder().define("TRANSLUCENT_PASS")))
+                .addSource(
+                        TASK,
+                        ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/task.glsl")))
+                .addSource(
+                        MESH,
+                        ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "terrain/translucent/mesh.glsl")))
+                .addSource(
+                        FRAGMENT,
+                        ShaderLoader.parse(
+                                Identifier.fromNamespaceAndPath("nvidium", "terrain/frag.frag"),
+                                ShaderDefines.builder().define("TRANSLUCENT_PASS")))
                 .compile();
     }
 
-    //Translucency is rendered in a very cursed and incorrect way
+    // Translucency is rendered in a very cursed and incorrect way
     // it hijacks the unassigned indirect command dispatch and uses that to dispatch the translucent chunks as well
-    public void raster(TerrainRenderPass pass, int regionCount, IDeviceMappedBuffer commandBuffer, GpuSampler terrainSampler) {
+    public void raster(
+            TerrainRenderPass pass, int regionCount, IDeviceMappedBuffer commandBuffer, GpuSampler terrainSampler) {
         GpuTextureView blockTexture = pass.getAtlas();
         GpuTextureView lightTexture = Minecraft.getInstance().gameRenderer.lightmap();
 

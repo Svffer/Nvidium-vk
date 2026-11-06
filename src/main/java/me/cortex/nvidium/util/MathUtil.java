@@ -5,6 +5,6 @@ public final class MathUtil {
 
     public static long alignUp(long number, long alignment) {
         long delta = number % alignment;
-        return delta == 0?number: number + (alignment - delta);
+        return delta == 0 ? number : number + (alignment - delta);
     }
 }

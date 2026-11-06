@@ -4,7 +4,7 @@ import me.cortex.nvidium.backend.IDeviceMappedBuffer;
 import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.backend.ISparseBuffer;
 
-//TODO: make it not remove and immediately deallocate the sparse pages, wait until the end of a frame to deallocate
+// TODO: make it not remove and immediately deallocate the sparse pages, wait until the end of a frame to deallocate
 // since committing pages is not cheap
 public class BufferArena {
     SegmentedManager segments = new SegmentedManager();
@@ -15,18 +15,17 @@ public class BufferArena {
 
     private final long memory_size;
 
-
     public BufferArena(IRenderBackend backend, long memory, int vertexFormatSize) {
         this.backend = backend;
         this.vertexFormatSize = vertexFormatSize;
         this.memory_size = memory;
         if (backend.supportsSparseBuffers()) {
-            buffer = backend.createSparseBuffer(80000000000L);//Create a 80gb buffer
+            buffer = backend.createSparseBuffer(80000000000L); // Create a 80gb buffer
         } else {
             buffer = backend.createDeviceOnlyMappedBuffer(memory);
-            this.segments.setLimit(memory/(4L*this.vertexFormatSize));
+            this.segments.setLimit(memory / (4L * this.vertexFormatSize));
         }
-        //Reserve index 0
+        // Reserve index 0
         this.allocQuads(1);
     }
 
@@ -37,7 +36,8 @@ public class BufferArena {
             return addr;
         }
         if (buffer instanceof ISparseBuffer psab) {
-            psab.ensureAllocated(Integer.toUnsignedLong(addr) * 4L * vertexFormatSize, quadCount * 4L * vertexFormatSize);
+            psab.ensureAllocated(
+                    Integer.toUnsignedLong(addr) * 4L * vertexFormatSize, quadCount * 4L * vertexFormatSize);
         }
         return addr;
     }
@@ -51,7 +51,10 @@ public class BufferArena {
     }
 
     public long upload(UploadingBufferStream stream, int addr) {
-        return stream.upload(buffer, Integer.toUnsignedLong(addr)*4L*vertexFormatSize, (int) segments.getSize(addr)*4*vertexFormatSize);
+        return stream.upload(
+                buffer,
+                Integer.toUnsignedLong(addr) * 4L * vertexFormatSize,
+                (int) segments.getSize(addr) * 4 * vertexFormatSize);
     }
 
     public void delete() {
@@ -62,12 +65,12 @@ public class BufferArena {
         if (buffer instanceof ISparseBuffer psab) {
             return (int) ((psab.getPagesCommitted() * psab.pageSize()) / (1024 * 1024));
         } else {
-            return (int) (memory_size/(1024*1024));
+            return (int) (memory_size / (1024 * 1024));
         }
     }
 
     public int getUsedMB() {
-        return (int) ((totalQuads * vertexFormatSize * 4)/(1024*1024));
+        return (int) ((totalQuads * vertexFormatSize * 4) / (1024 * 1024));
     }
 
     public long getMemoryUsed() {
@@ -80,7 +83,7 @@ public class BufferArena {
 
     public float getFragmentation() {
         long expected = totalQuads * vertexFormatSize * 4;
-        return (float) ((double)expected/getMemoryUsed());
+        return (float) ((double) expected / getMemoryUsed());
     }
 
     public boolean canReuse(int addr, int quads) {

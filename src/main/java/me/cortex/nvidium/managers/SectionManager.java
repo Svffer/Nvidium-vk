@@ -1,10 +1,13 @@
 package me.cortex.nvidium.managers;
 
+import static me.cortex.nvidium.Nvidium.LOGGER;
+
 import it.unimi.dsi.fastutil.longs.*;
+import java.nio.IntBuffer;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.NvidiumWorldRenderer;
-import me.cortex.nvidium.config.TranslucencySortingLevel;
 import me.cortex.nvidium.backend.IRenderBackend;
+import me.cortex.nvidium.config.TranslucencySortingLevel;
 import me.cortex.nvidium.sodiumCompat.INvidiumWorldRendererGetter;
 import me.cortex.nvidium.sodiumCompat.IRepackagedResult;
 import me.cortex.nvidium.util.BufferArena;
@@ -22,14 +25,10 @@ import org.joml.Vector3i;
 import org.joml.Vector4i;
 import org.lwjgl.system.MemoryUtil;
 
-import java.nio.IntBuffer;
-
-import static me.cortex.nvidium.Nvidium.LOGGER;
-
 public class SectionManager {
     public static final int SECTION_SIZE = 32 + 16;
 
-    //Sections should be grouped and batched into sizes of the count of sections in a region
+    // Sections should be grouped and batched into sizes of the count of sections in a region
     private final RegionManager regionManager;
 
     private final Long2IntOpenHashMap section2id = new Long2IntOpenHashMap();
@@ -47,7 +46,12 @@ public class SectionManager {
 
     private final LongSet hiddenSectionKeys = new LongOpenHashSet();
 
-    public SectionManager(IRenderBackend device, long fallbackMemorySize, UploadingBufferStream uploadStream, int quadVertexSize, NvidiumWorldRenderer worldRenderer) {
+    public SectionManager(
+            IRenderBackend device,
+            long fallbackMemorySize,
+            UploadingBufferStream uploadStream,
+            int quadVertexSize,
+            NvidiumWorldRenderer worldRenderer) {
         int maxRegions = 50_000;
 
         this.device = device;
@@ -56,7 +60,8 @@ public class SectionManager {
         this.quadVertexSize = quadVertexSize;
 
         this.terrainAreana = new BufferArena(device, fallbackMemorySize, quadVertexSize);
-        this.regionManager = new RegionManager(device, maxRegions, maxRegions * 200, uploadStream, worldRenderer::enqueueRegionSort);
+        this.regionManager =
+                new RegionManager(device, maxRegions, maxRegions * 200, uploadStream, worldRenderer::enqueueRegionSort);
 
         this.section2id.defaultReturnValue(-1);
         this.section2terrain.defaultReturnValue(-1);
@@ -69,9 +74,10 @@ public class SectionManager {
         int quadOffset = 0;
         for (var facing : ModelQuadFacing.values()) {
             for (int i = 0; i < quadCountData[facing.ordinal()]; i++) {
-                // We only need 1 index out of 6 because we are working with quad indexes, also /4 because we have 4 vertices per quad
+                // We only need 1 index out of 6 because we are working with quad indexes, also /4 because we have 4
+                // vertices per quad
                 int idx = (indexBuffer.get((quadOffset + i) * 6) / 4) + quadOffset;
-                MemoryUtil.memPutInt(upload + (long)(quadOffset + i) * 4, idx);
+                MemoryUtil.memPutInt(upload + (long) (quadOffset + i) * 4, idx);
             }
             quadOffset += quadCountData[facing.ordinal()];
         }
@@ -93,16 +99,23 @@ public class SectionManager {
             return;
         }
 
-        // Quick dirty integrity check to prevent race condition crash because translucencyQuadCounts can be overridden by an already reprocessed chunk
+        // Quick dirty integrity check to prevent race condition crash because translucencyQuadCounts can be overridden
+        // by an already reprocessed chunk
         if (quadCountData[7] * 6 * 4 != indexBuffer.getLength()) {
-            LOGGER.error("ChunkSortOutput integrity check failed at {} {} {}, aborting (totalQuads={};indexBuffer={})",
-                    section.getChunkX(), section.getChunkY(), section.getChunkZ(), quadCountData[7], indexBuffer.getLength() / 24);
+            LOGGER.error(
+                    "ChunkSortOutput integrity check failed at {} {} {}, aborting (totalQuads={};indexBuffer={})",
+                    section.getChunkX(),
+                    section.getChunkY(),
+                    section.getChunkZ(),
+                    quadCountData[7],
+                    indexBuffer.getLength() / 24);
             return;
         }
 
         int indexDataAddress;
         {
-            // We are hijacking terrain buffer to store indices so we need to /6 because we need only one index per quad & scale our storage on terrain storage
+            // We are hijacking terrain buffer to store indices so we need to /6 because we need only one index per quad
+            // & scale our storage on terrain storage
             var idxBufferLength = ((indexBuffer.getLength() / 6) + (quadVertexSize - 1)) / quadVertexSize;
             IntBuffer idxBuffer = indexBuffer.getDirectBuffer().asIntBuffer();
 
@@ -134,11 +147,13 @@ public class SectionManager {
 
         long metadata = regionManager.setSectionData(sectionIdx);
         metadata += 32 + 4; // Go to translucency data offset
-        MemoryUtil.memPutInt(metadata, indexDataAddress * quadVertexSize); // Scale address since we have ints instead of ChunkVertexFormat
+        MemoryUtil.memPutInt(
+                metadata,
+                indexDataAddress * quadVertexSize); // Scale address since we have ints instead of ChunkVertexFormat
     }
 
     public void uploadChunkBuildResult(ChunkBuildOutput result) {
-        var output = ((IRepackagedResult)result).getOutput();
+        var output = ((IRepackagedResult) result).getOutput();
 
         RenderSection section = result.section;
         long sectionKey = SectionPos.asLong(section.getChunkX(), section.getChunkY(), section.getChunkZ());
@@ -167,7 +182,7 @@ public class SectionManager {
 
         int terrainAddress;
         {
-            //Attempt to reuse the same memory
+            // Attempt to reuse the same memory
             terrainAddress = this.section2terrain.get(sectionKey);
             if (terrainAddress != -1 && !this.terrainAreana.canReuse(terrainAddress, output.quads())) {
                 this.section2terrain.remove(sectionKey);
@@ -180,10 +195,13 @@ public class SectionManager {
             }
 
             if (terrainAddress == SegmentedManager.SIZE_LIMIT) {
-                Nvidium.LOGGER.error("Terrain arena critically out of memory, expect issues with chunks!! " +
-                        " quad_used: " + this.terrainAreana.getUsedMB() +
-                        " physically used: " + this.terrainAreana.getMemoryUsed() +
-                        " limit: " + ((INvidiumWorldRendererGetter)(SodiumWorldRenderer.instance())).getRenderer().getMaxGeometryMemory());
+                Nvidium.LOGGER.error(
+                        "Terrain arena critically out of memory, expect issues with chunks!! " + " quad_used: "
+                                + this.terrainAreana.getUsedMB() + " physically used: "
+                                + this.terrainAreana.getMemoryUsed() + " limit: "
+                                + ((INvidiumWorldRendererGetter) (SodiumWorldRenderer.instance()))
+                                        .getRenderer()
+                                        .getMaxGeometryMemory());
 
                 deleteSection(sectionKey);
                 return;
@@ -192,36 +210,38 @@ public class SectionManager {
             this.section2terrain.put(sectionKey, terrainAddress);
 
             long geometryUpload = terrainAreana.upload(uploadStream, terrainAddress);
-            MemoryUtil.memCopy(MemoryUtil.memAddress(output.geometry().getDirectBuffer()), geometryUpload, output.geometry().getLength());
+            MemoryUtil.memCopy(
+                    MemoryUtil.memAddress(output.geometry().getDirectBuffer()),
+                    geometryUpload,
+                    output.geometry().getLength());
         }
 
-
-
-        //Get the section id or allocate a new instance for it
+        // Get the section id or allocate a new instance for it
         int sectionIdx = this.section2id.computeIfAbsent(
                 sectionKey,
-                key -> this.regionManager.allocateSection(SectionPos.x(key), SectionPos.y(key), SectionPos.z(key))
-        );
-
+                key -> this.regionManager.allocateSection(SectionPos.x(key), SectionPos.y(key), SectionPos.z(key)));
 
         long metadata = regionManager.setSectionData(sectionIdx);
         boolean hideSectionBitSet = this.hiddenSectionKeys.contains(sectionKey);
-        Vector3i min  = output.min();
+        Vector3i min = output.min();
         Vector3i size = output.size();
 
-
-        //bits 18->26 taken by section id (used for translucency sorting/rendering)
+        // bits 18->26 taken by section id (used for translucency sorting/rendering)
         // 26->32 is free
-        int px = section.getChunkX()<<8 | size.x<<4 | min.x;
-        int py = (section.getChunkY()&0x1FF)<<8 | size.y<<4 | min.y | (hideSectionBitSet?1<<17:0) | ((regionManager.getSectionRefId(sectionIdx))<<18);
-        int pz = section.getChunkZ()<<8 | size.z<<4 | min.z;
+        int px = section.getChunkX() << 8 | size.x << 4 | min.x;
+        int py = (section.getChunkY() & 0x1FF) << 8
+                | size.y << 4
+                | min.y
+                | (hideSectionBitSet ? 1 << 17 : 0)
+                | ((regionManager.getSectionRefId(sectionIdx)) << 18);
+        int pz = section.getChunkZ() << 8 | size.z << 4 | min.z;
         int pw = terrainAddress;
         new Vector4i(px, py, pz, pw).getToAddress(metadata);
-        metadata += 4*4;
+        metadata += 4 * 4;
 
-        //Write the geometry offsets, packed into ints
+        // Write the geometry offsets, packed into ints
         for (int i = 0; i < 4; i++) {
-            int geo = (output.offsets()[i*2]&0xffff)|(output.offsets()[i*2+1]&0xffff)<<16;
+            int geo = (output.offsets()[i * 2] & 0xffff) | (output.offsets()[i * 2 + 1] & 0xffff) << 16;
             MemoryUtil.memPutInt(metadata, geo);
             metadata += 4;
         }
@@ -249,7 +269,8 @@ public class SectionManager {
                         this.terrainAreana.free(idxIndex);
                     }
                 } else {
-                    // Not 100% sure if the old data is still good for our new chunkbuild but if count is good at least we shouldn't crash
+                    // Not 100% sure if the old data is still good for our new chunkbuild but if count is good at least
+                    // we shouldn't crash
                     // Don't forget to scale and don't scale -1 (no data)
                     MemoryUtil.memPutInt(metadata, (trIdx != -1 ? trIdx * quadVertexSize : -1));
                 }
@@ -261,22 +282,23 @@ public class SectionManager {
         long sectionKey = SectionPos.asLong(x, y, z);
 
         if (hide) {
-            //Do a fast return if it was already hidden
+            // Do a fast return if it was already hidden
             if (!this.hiddenSectionKeys.add(sectionKey)) {
                 return;
             }
         } else {
-            //Do a fast return if the section was not hidden
+            // Do a fast return if the section was not hidden
             if (!this.hiddenSectionKeys.remove(sectionKey)) {
                 return;
             }
         }
 
         int sectionId = this.section2id.get(sectionKey);
-        //Only update the section if it is loaded
+        // Only update the section if it is loaded
         if (sectionId != -1) {
             long metadata = this.regionManager.setSectionData(sectionId);
-            MemoryUtil.memPutInt(metadata + 4, (MemoryUtil.memGetInt(metadata + 4)&~(1<<17))| (hide?1:0)<<17);
+            MemoryUtil.memPutInt(
+                    metadata + 4, (MemoryUtil.memGetInt(metadata + 4) & ~(1 << 17)) | (hide ? 1 : 0) << 17);
         }
     }
 
@@ -297,7 +319,7 @@ public class SectionManager {
                 this.terrainAreana.free(indexIdx);
             }
             this.translucencyQuadCounts.remove(sectionKey);
-            //Clear the segment
+            // Clear the segment
             this.regionManager.removeSection(sectionIdx);
         }
     }
@@ -318,19 +340,15 @@ public class SectionManager {
     public void removeRegionById(int regionId) {
         if (!this.regionManager.regionExists(regionId)) return;
         long rk = this.regionManager.regionIdToKey(regionId);
-        int X = SectionPos.x(rk)<<3;
-        int Y = SectionPos.y(rk)<<2;
-        int Z = SectionPos.z(rk)<<3;
-        for (int x = X; x < X+8; x++) {
-            for (int y = Y; y < Y+4; y++) {
-                for (int z = Z; z < Z+8; z++) {
+        int X = SectionPos.x(rk) << 3;
+        int Y = SectionPos.y(rk) << 2;
+        int Z = SectionPos.z(rk) << 3;
+        for (int x = X; x < X + 8; x++) {
+            for (int y = Y; y < Y + 4; y++) {
+                for (int z = Z; z < Z + 8; z++) {
                     this.deleteSection(SectionPos.asLong(x, y, z));
                 }
             }
         }
     }
 }
-
-
-
-

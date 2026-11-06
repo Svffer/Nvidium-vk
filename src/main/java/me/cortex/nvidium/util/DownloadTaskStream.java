@@ -6,9 +6,11 @@ import me.cortex.nvidium.backend.IBuffer;
 import me.cortex.nvidium.backend.IClientMappedBuffer;
 import me.cortex.nvidium.backend.IRenderBackend;
 
-//Download stream from gpu to cpu
+// Download stream from gpu to cpu
 public class DownloadTaskStream {
-    public interface IDownloadFinishedCallback {void accept(long addr);}
+    public interface IDownloadFinishedCallback {
+        void accept(long addr);
+    }
 
     private record Download(long addr, IDownloadFinishedCallback callback) {}
 
@@ -18,6 +20,7 @@ public class DownloadTaskStream {
 
     private int cidx;
     private final ObjectList<Download>[] allocations;
+
     public DownloadTaskStream(IRenderBackend backend, int frames, long size) {
         this.backend = backend;
         allocator.setLimit(size);
@@ -36,7 +39,7 @@ public class DownloadTaskStream {
     }
 
     void tick() {
-        cidx = (cidx+1)%allocations.length;
+        cidx = (cidx + 1) % allocations.length;
         for (var download : allocations[cidx]) {
             download.callback.accept(download.addr + buffer.clientAddress());
             allocator.free(download.addr);

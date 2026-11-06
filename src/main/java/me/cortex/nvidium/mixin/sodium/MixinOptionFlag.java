@@ -14,10 +14,10 @@ public class MixinOptionFlag {
     @Shadow
     @Final
     @Mutable
-    private static OptionFlag[] $VALUES = ArrayUtils.addAll(MixinOptionFlag.$VALUES, NvidiumOptionFlags.REQUIRES_SHADER_RELOAD);
+    private static OptionFlag[] $VALUES =
+            ArrayUtils.addAll(MixinOptionFlag.$VALUES, NvidiumOptionFlags.REQUIRES_SHADER_RELOAD);
 
-    public MixinOptionFlag() {
-    }
+    public MixinOptionFlag() {}
 
     @Invoker("<init>")
     public static OptionFlag optionFlagCreator(String internalName, int internalId) {

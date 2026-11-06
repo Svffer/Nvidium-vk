@@ -1,11 +1,11 @@
 package me.cortex.nvidium.renderers;
 
+import static me.cortex.nvidium.backend.ShaderType.*;
+
 import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.backend.IShader;
 import me.cortex.nvidium.sodiumCompat.ShaderLoader;
 import net.minecraft.resources.Identifier;
-
-import static me.cortex.nvidium.backend.ShaderType.*;
 
 public class SectionRasterizer extends Phase {
     private final IShader shader;
@@ -13,9 +13,19 @@ public class SectionRasterizer extends Phase {
     public SectionRasterizer(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
-                .addSource(TASK, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/section_raster/task.glsl")))
-                .addSource(MESH, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/section_raster/mesh.glsl")))
-                .addSource(FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/section_raster/fragment.glsl"))).compile();
+                .addSource(
+                        TASK,
+                        ShaderLoader.parse(
+                                Identifier.fromNamespaceAndPath("nvidium", "occlusion/section_raster/task.glsl")))
+                .addSource(
+                        MESH,
+                        ShaderLoader.parse(
+                                Identifier.fromNamespaceAndPath("nvidium", "occlusion/section_raster/mesh.glsl")))
+                .addSource(
+                        FRAGMENT,
+                        ShaderLoader.parse(
+                                Identifier.fromNamespaceAndPath("nvidium", "occlusion/section_raster/fragment.glsl")))
+                .compile();
     }
 
     public void raster(int regionCount) {

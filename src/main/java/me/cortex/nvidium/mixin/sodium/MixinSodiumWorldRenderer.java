@@ -3,6 +3,8 @@ package me.cortex.nvidium.mixin.sodium;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuSampler;
+import java.util.Optional;
+import java.util.OptionalDouble;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.NvidiumWorldRenderer;
 import me.cortex.nvidium.sodiumCompat.INvidiumWorldRendererGetter;
@@ -22,13 +24,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Optional;
-import java.util.OptionalDouble;
-
 @Mixin(value = SodiumWorldRenderer.class, remap = false)
 public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererGetter {
     @Shadow
     private RenderSectionManager renderSectionManager;
+
     @Unique
     private Viewport viewport;
 
@@ -42,16 +42,31 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
     }
 
     @Inject(method = "setupTerrain", at = @At(value = "HEAD"))
-    public void trackViewport(Camera camera, Viewport viewport, FogParameters fogParameters, boolean spectator, boolean updateChunksImmediately, Matrix4f cullMatrix, CallbackInfo ci) {
+    public void trackViewport(
+            Camera camera,
+            Viewport viewport,
+            FogParameters fogParameters,
+            boolean spectator,
+            boolean updateChunksImmediately,
+            Matrix4f cullMatrix,
+            CallbackInfo ci) {
         this.viewport = viewport;
     }
 
     @Inject(method = "renderLayer", at = @At(value = "HEAD"), cancellable = true)
-    public void renderLayer(ChunkRenderMatrices matrices, TerrainRenderPass pass, double x, double y, double z, FogParameters fogParameters, GpuSampler terrainSampler, CallbackInfo ci) {
+    public void renderLayer(
+            ChunkRenderMatrices matrices,
+            TerrainRenderPass pass,
+            double x,
+            double y,
+            double z,
+            FogParameters fogParameters,
+            GpuSampler terrainSampler,
+            CallbackInfo ci) {
         if (Nvidium.IS_ENABLED) {
             ci.cancel();
             if (pass == DefaultTerrainRenderPasses.CUTOUT) // Early exit, cutout will be rendered with SOLID
-                return;
+            return;
 
             boolean translucent = pass == DefaultTerrainRenderPasses.TRANSLUCENT;
             var backend = Nvidium.backend;
@@ -62,8 +77,7 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
                             pass.getTarget().getColorTextureView(),
                             Optional.empty(),
                             pass.getTarget().getDepthTextureView(),
-                            OptionalDouble.empty()
-                    )) {
+                            OptionalDouble.empty())) {
                 backend.beginLayer(renderPass, translucent);
 
                 if (pass == DefaultTerrainRenderPasses.SOLID) {

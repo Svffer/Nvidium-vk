@@ -1,13 +1,6 @@
 package me.cortex.nvidium.bench;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import me.cortex.nvidium.Nvidium;
-import net.minecraft.client.Minecraft;
-import net.minecraft.server.MinecraftServer;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RenderFrameEvent;
-import net.neoforged.neoforge.common.NeoForge;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -15,6 +8,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Locale;
+import me.cortex.nvidium.Nvidium;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.MinecraftServer;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.neoforged.neoforge.common.NeoForge;
 
 /**
  * Dev-only, fully automatic frame-time benchmark (plan milestone M0).
@@ -38,7 +37,12 @@ import java.util.Locale;
 public final class BenchHarness {
     private static final long NS = 1_000_000_000L;
 
-    private enum State { WAIT_LEVEL, WARMUP, MEASURE, DONE }
+    private enum State {
+        WAIT_LEVEL,
+        WARMUP,
+        MEASURE,
+        DONE
+    }
 
     private State state = State.WAIT_LEVEL;
     private long stateStartNs;
@@ -62,8 +66,11 @@ public final class BenchHarness {
         var h = new BenchHarness();
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, h::onTick);
         NeoForge.EVENT_BUS.addListener(RenderFrameEvent.Post.class, h::onFrame);
-        Nvidium.LOGGER.info("[bench] harness installed, label='{}' warmup={}s duration={}s",
-                h.label, h.warmupNs / NS, h.durationNs / NS);
+        Nvidium.LOGGER.info(
+                "[bench] harness installed, label='{}' warmup={}s duration={}s",
+                h.label,
+                h.warmupNs / NS,
+                h.durationNs / NS);
     }
 
     private void onTick(ClientTickEvent.Post e) {
@@ -81,7 +88,8 @@ public final class BenchHarness {
                         position = p.getX() + " 110 " + p.getZ() + " 45 20";
                     }
                 }
-                runCommands(mc.getSingleplayerServer(),
+                runCommands(
+                        mc.getSingleplayerServer(),
                         "gamemode spectator @a",
                         "time set noon",
                         "weather clear",
@@ -110,9 +118,14 @@ public final class BenchHarness {
                     lastFrameNs = 0;
                     warmupTookNs = now - stateStartNs;
                     enter(State.MEASURE, now);
-                    Nvidium.LOGGER.info("[bench] measuring {}s (warm-up took {}s, {} chunks loaded{}; focused={} paused={})",
-                            durationNs / NS, warmupTookNs / NS, chunks, capped ? ", HIT MAX WARMUP" : "",
-                            mc.isWindowActive(), mc.isPaused());
+                    Nvidium.LOGGER.info(
+                            "[bench] measuring {}s (warm-up took {}s, {} chunks loaded{}; focused={} paused={})",
+                            durationNs / NS,
+                            warmupTookNs / NS,
+                            chunks,
+                            capped ? ", HIT MAX WARMUP" : "",
+                            mc.isWindowActive(),
+                            mc.isPaused());
                 }
             }
             case MEASURE -> {
@@ -164,25 +177,40 @@ public final class BenchHarness {
         String backend = mc.options.preferredGraphicsBackend().get().toString();
         int rd = mc.options.getEffectiveRenderDistance();
 
-        String json = String.format(Locale.ROOT,
-                "{\"label\":\"%s\",\"backend\":\"%s\",\"nvidium\":%b,\"renderDistance\":%d," +
-                "\"frames\":%d,\"seconds\":%.1f,\"avgFps\":%.1f,\"avgMs\":%.3f,\"p50Ms\":%.3f," +
-                "\"p99Ms\":%.3f,\"p999Ms\":%.3f,\"low1pctFps\":%.1f,\"stddevMs\":%.3f," +
-                "\"gpu\":\"%s\",\"driver\":\"%s\",\"width\":%d,\"height\":%d," +
-                "\"warmupS\":%d,\"chunks\":%d,\"focused\":%b,\"paused\":%b}",
-                label, backend, Nvidium.IS_ENABLED, rd,
-                t.length, total / NS, avgFps, avgMs, p50 / 1e6,
-                p99 / 1e6, p999 / 1e6, 1e9 / p99, stddevMs,
-                info.name().replace('"', '\''), info.driverInfo().replace('"', '\''),
-                mc.getWindow().getWidth(), mc.getWindow().getHeight(),
-                warmupTookNs / NS, lastChunkCount,
-                mc.isWindowActive(), mc.isPaused());
+        String json = String.format(
+                Locale.ROOT,
+                "{\"label\":\"%s\",\"backend\":\"%s\",\"nvidium\":%b,\"renderDistance\":%d,"
+                        + "\"frames\":%d,\"seconds\":%.1f,\"avgFps\":%.1f,\"avgMs\":%.3f,\"p50Ms\":%.3f,"
+                        + "\"p99Ms\":%.3f,\"p999Ms\":%.3f,\"low1pctFps\":%.1f,\"stddevMs\":%.3f,"
+                        + "\"gpu\":\"%s\",\"driver\":\"%s\",\"width\":%d,\"height\":%d,"
+                        + "\"warmupS\":%d,\"chunks\":%d,\"focused\":%b,\"paused\":%b}",
+                label,
+                backend,
+                Nvidium.IS_ENABLED,
+                rd,
+                t.length,
+                total / NS,
+                avgFps,
+                avgMs,
+                p50 / 1e6,
+                p99 / 1e6,
+                p999 / 1e6,
+                1e9 / p99,
+                stddevMs,
+                info.name().replace('"', '\''),
+                info.driverInfo().replace('"', '\''),
+                mc.getWindow().getWidth(),
+                mc.getWindow().getHeight(),
+                warmupTookNs / NS,
+                lastChunkCount,
+                mc.isWindowActive(),
+                mc.isPaused());
 
         Nvidium.LOGGER.info("[bench] RESULT {}", json);
         try {
             Path out = mc.gameDirectory.toPath().resolve("bench-results.jsonl");
-            Files.writeString(out, json + "\n", StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            Files.writeString(
+                    out, json + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException ex) {
             Nvidium.LOGGER.error("[bench] failed to write results", ex);
         }

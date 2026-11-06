@@ -1,12 +1,11 @@
 package me.cortex.nvidium.backend;
 
-import me.cortex.nvidium.Nvidium;
-
 import java.lang.ref.Cleaner;
-import java.lang.ref.Cleaner.Cleanable;
+import me.cortex.nvidium.Nvidium;
 
 public abstract class TrackedObject {
     private final Ref ref;
+
     public TrackedObject() {
         this.ref = register(this);
     }
@@ -34,6 +33,7 @@ public abstract class TrackedObject {
     public record Ref(Cleaner.Cleanable cleanable, boolean[] freedRef) {}
 
     private static final Cleaner cleaner = Cleaner.create();
+
     public static Ref register(Object obj) {
         String clazz = obj.getClass().getName();
         Throwable trace;
@@ -43,9 +43,9 @@ public abstract class TrackedObject {
             trace = null;
         }
         boolean[] freed = new boolean[1];
-        var clean = cleaner.register(obj, ()->{
+        var clean = cleaner.register(obj, () -> {
             if (!freed[0]) {
-                System.err.println("Object named: "+ clazz+" was not freed, location at:\n");
+                System.err.println("Object named: " + clazz + " was not freed, location at:\n");
                 if (trace != null) {
                     trace.printStackTrace();
                 } else {

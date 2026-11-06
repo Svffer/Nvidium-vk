@@ -1,11 +1,11 @@
 package me.cortex.nvidium.renderers;
 
+import static me.cortex.nvidium.backend.ShaderType.COMPUTE;
+
 import me.cortex.nvidium.backend.IRenderBackend;
 import me.cortex.nvidium.backend.IShader;
 import me.cortex.nvidium.sodiumCompat.ShaderLoader;
 import net.minecraft.resources.Identifier;
-
-import static me.cortex.nvidium.backend.ShaderType.COMPUTE;
 
 public class CmdBufferBuilder extends Phase {
     private final IShader shader;
@@ -13,7 +13,10 @@ public class CmdBufferBuilder extends Phase {
     public CmdBufferBuilder(IRenderBackend backend) {
         super(backend);
         this.shader = backend.createShader()
-                .addSource(COMPUTE, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/command_buffer/command_buffer_builder.comp")))
+                .addSource(
+                        COMPUTE,
+                        ShaderLoader.parse(Identifier.fromNamespaceAndPath(
+                                "nvidium", "occlusion/command_buffer/command_buffer_builder.comp")))
                 .compile();
     }
 

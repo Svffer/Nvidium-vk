@@ -1,18 +1,19 @@
 package me.cortex.nvidium.backend.gl.buffers;
 
-import me.cortex.nvidium.backend.IDeviceMappedBuffer;
-import me.cortex.nvidium.backend.gl.GlObject;
-
 import static org.lwjgl.opengl.ARBDirectStateAccess.glCreateBuffers;
 import static org.lwjgl.opengl.ARBDirectStateAccess.glNamedBufferStorage;
 import static org.lwjgl.opengl.GL15C.GL_READ_WRITE;
 import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
 import static org.lwjgl.opengl.NVShaderBufferLoad.*;
 
+import me.cortex.nvidium.backend.IDeviceMappedBuffer;
+import me.cortex.nvidium.backend.gl.GlObject;
+
 /** Immutable device-local storage made resident via {@code NV_shader_buffer_load}. */
 public class GlDeviceOnlyBuffer extends GlObject implements IDeviceMappedBuffer {
     public final long size;
     public final long addr;
+
     public GlDeviceOnlyBuffer(long size) {
         super(glCreateBuffers());
         this.size = size;

@@ -7,8 +7,11 @@ import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(value = RenderSection.class, remap = false)
 public class MixinRenderSection implements IRenderSectionExtension {
-    @Unique private volatile boolean isEnqueued;
-    @Unique private volatile boolean isSeen;
+    @Unique
+    private volatile boolean isEnqueued;
+
+    @Unique
+    private volatile boolean isSeen;
 
     @Override
     public boolean isSubmittedRebuild() {

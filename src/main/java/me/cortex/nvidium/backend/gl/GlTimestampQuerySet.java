@@ -1,21 +1,21 @@
 package me.cortex.nvidium.backend.gl;
 
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
-import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
-import me.cortex.nvidium.backend.ITimestampQuerySet;
-import me.cortex.nvidium.backend.TrackedObject;
-
-import java.util.Arrays;
-
 import static org.lwjgl.opengl.GL11C.GL_TRUE;
 import static org.lwjgl.opengl.GL15C.*;
 import static org.lwjgl.opengl.GL33C.*;
+
+import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
+import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
+import java.util.Arrays;
+import me.cortex.nvidium.backend.ITimestampQuerySet;
+import me.cortex.nvidium.backend.TrackedObject;
 
 /** GL timer queries ({@code GL_TIMESTAMP}) pooled and recycled across frames. */
 final class GlTimestampQuerySet extends TrackedObject implements ITimestampQuerySet {
     private record InflightRequest(int[] queries, int[] meta, TimingDataConsumer callback) {
         private boolean callbackIfReady(IntArrayFIFOQueue queryPool) {
-            boolean ready = glGetQueryObjecti(this.queries[this.queries.length - 1], GL_QUERY_RESULT_AVAILABLE) == GL_TRUE;
+            boolean ready =
+                    glGetQueryObjecti(this.queries[this.queries.length - 1], GL_QUERY_RESULT_AVAILABLE) == GL_TRUE;
             if (!ready) {
                 return false;
             }

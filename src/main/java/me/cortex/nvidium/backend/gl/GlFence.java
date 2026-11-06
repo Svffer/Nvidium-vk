@@ -1,9 +1,9 @@
 package me.cortex.nvidium.backend.gl;
 
+import static org.lwjgl.opengl.GL32.*;
+
 import me.cortex.nvidium.backend.IFence;
 import me.cortex.nvidium.backend.TrackedObject;
-
-import static org.lwjgl.opengl.GL32.*;
 
 public class GlFence extends TrackedObject implements IFence {
     private final long fence;

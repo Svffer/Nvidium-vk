@@ -7,7 +7,6 @@ import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildOutput;
 import net.caffeinemc.mods.sodium.client.render.chunk.data.BuiltSectionMeshParts;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
-import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkMeshFormats;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.impl.CompactChunkVertex;
 import net.caffeinemc.mods.sodium.client.util.NativeBuffer;
 import net.minecraft.client.Minecraft;
@@ -17,7 +16,9 @@ import org.lwjgl.system.MemoryUtil;
 public class SodiumResultCompatibility {
 
     public static RepackagedSectionOutput repackage(ChunkBuildOutput result, int formatSize) {
-        int geometryBytes = result.meshes.values().stream().mapToInt(a->a.getVertexData().getLength()).sum();
+        int geometryBytes = result.meshes.values().stream()
+                .mapToInt(a -> a.getVertexData().getLength())
+                .sum();
         var output = new NativeBuffer(geometryBytes);
         var offsets = new int[8];
         var min = new Vector3i(2000);
@@ -40,23 +41,23 @@ public class SodiumResultCompatibility {
             max.y = Math.max(max.y, 0);
             max.z = Math.max(max.z, 0);
 
-            size =  new Vector3i(max.x - min.x - 1, max.y - min.y - 1, max.z - min.z - 1);
+            size = new Vector3i(max.x - min.x - 1, max.y - min.y - 1, max.z - min.z - 1);
 
             size.x = Math.min(15, Math.max(size.x, 0));
             size.y = Math.min(15, Math.max(size.y, 0));
             size.z = Math.min(15, Math.max(size.z, 0));
         }
-        var repackagedGeometry = new RepackagedSectionOutput((geometryBytes/formatSize)/4, output, offsets, min, size);
-        //NvidiumGeometryReencoder.transpileGeometry(repackagedGeometry);
+        var repackagedGeometry =
+                new RepackagedSectionOutput((geometryBytes / formatSize) / 4, output, offsets, min, size);
+        // NvidiumGeometryReencoder.transpileGeometry(repackagedGeometry);
         return repackagedGeometry;
     }
 
-
     private static void copyQuad(long from, long too) {
-        //Quads are 64 bytes big using NvidiumCompactChunkVertex otherwise 80 bytes using CompactChunkVertex
-        long quadSize = Nvidium.config.use_sodium_vertex_format ?
-                CompactChunkVertex.STRIDE * 4 :
-                NvidiumCompactChunkVertex.STRIDE * 4;
+        // Quads are 64 bytes big using NvidiumCompactChunkVertex otherwise 80 bytes using CompactChunkVertex
+        long quadSize = Nvidium.config.use_sodium_vertex_format
+                ? CompactChunkVertex.STRIDE * 4
+                : NvidiumCompactChunkVertex.STRIDE * 4;
         MemoryUtil.memCopy(from, too, quadSize);
     }
 
@@ -77,11 +78,18 @@ public class SodiumResultCompatibility {
         return ranges;
     }
 
-    private static int copyRange(BuiltSectionMeshParts meshData, int offset, int count, long dst, int formatSize, Vector3i min, Vector3i max) {
+    private static int copyRange(
+            BuiltSectionMeshParts meshData,
+            int offset,
+            int count,
+            long dst,
+            int formatSize,
+            Vector3i min,
+            Vector3i max) {
         long src = MemoryUtil.memAddress(meshData.getVertexData().getDirectBuffer()) + (long) offset * formatSize;
         MemoryUtil.memCopy(src, dst, (long) count * formatSize);
 
-        //Update the meta bits of the model format
+        // Update the meta bits of the model format
         for (int j = 0; j < count; j++) {
             long base = dst + (long) j * formatSize;
             updateSectionBounds(min, max, base);
@@ -90,12 +98,18 @@ public class SodiumResultCompatibility {
         return count / 4;
     }
 
-    //Everything is /6*4 cause its in indices and we want vertices
-    private static void packageSectionGeometry(int formatSize, NativeBuffer output, int[] outOffsets, ChunkBuildOutput result, Vector3i min, Vector3i max) {
+    // Everything is /6*4 cause its in indices and we want vertices
+    private static void packageSectionGeometry(
+            int formatSize,
+            NativeBuffer output,
+            int[] outOffsets,
+            ChunkBuildOutput result,
+            Vector3i min,
+            Vector3i max) {
         int offset = 0;
         long outPtr = MemoryUtil.memAddress(output.getDirectBuffer());
 
-        //Do translucent first
+        // Do translucent first
         var translucentData = result.meshes.get(DefaultTerrainRenderPasses.TRANSLUCENT);
 
         // If we are using sodium translucency sorting, we don't need to sort quads
@@ -109,24 +123,23 @@ public class SodiumResultCompatibility {
                         outPtr + offset * 4L * formatSize,
                         formatSize,
                         min,
-                        max
-                );
+                        max);
             }
         } else if (translucentData != null) {
-            //NOTE: mutates the input translucent geometry
+            // NOTE: mutates the input translucent geometry
             var cameraPos = Minecraft.getInstance().gameRenderer.mainCamera().position();
 
-            float cpx = (float) (cameraPos.x - (result.section.getChunkX()<<4));
-            float cpy = (float) (cameraPos.y - (result.section.getChunkY()<<4));
-            float cpz = (float) (cameraPos.z - (result.section.getChunkZ()<<4));
+            float cpx = (float) (cameraPos.x - (result.section.getChunkX() << 4));
+            float cpy = (float) (cameraPos.y - (result.section.getChunkY() << 4));
+            float cpz = (float) (cameraPos.z - (result.section.getChunkZ() << 4));
 
-            {//Project the camera pos onto the bounding outline of the chunk (-8 -> 24 for each axis)
-                float len = (float) Math.sqrt(cpx*cpx + cpy*cpy + cpz*cpz);
-                cpx *= 1/len;
-                cpy *= 1/len;
-                cpz *= 1/len;
+            { // Project the camera pos onto the bounding outline of the chunk (-8 -> 24 for each axis)
+                float len = (float) Math.sqrt(cpx * cpx + cpy * cpy + cpz * cpz);
+                cpx *= 1 / len;
+                cpy *= 1 / len;
+                cpz *= 1 / len;
 
-                //The max range of the camera can be is like 32 blocks away so just use that
+                // The max range of the camera can be is like 32 blocks away so just use that
                 len = Math.min(len, 32);
 
                 cpx *= len;
@@ -145,13 +158,14 @@ public class SodiumResultCompatibility {
                 var off = ranges[i * 2];
                 var count = ranges[i * 2 + 1];
 
-                long src = MemoryUtil.memAddress(translucentData.getVertexData().getDirectBuffer()) + (long) off * formatSize;
+                long src = MemoryUtil.memAddress(translucentData.getVertexData().getDirectBuffer())
+                        + (long) off * formatSize;
                 srcs[i] = src;
 
                 float cx = 0;
                 float cy = 0;
                 float cz = 0;
-                //Update the meta bits of the model format
+                // Update the meta bits of the model format
                 for (int j = 0; j < count; j++) {
                     long base = src + (long) j * formatSize;
 
@@ -160,7 +174,7 @@ public class SodiumResultCompatibility {
                         int hi = MemoryUtil.memGetInt(base);
                         int lo = MemoryUtil.memGetInt(base + 4);
 
-                        x = scalePos((((hi >>  0) & 0x3FF) << 10) | ((lo >>  0) & 0x3FF));
+                        x = scalePos((((hi >> 0) & 0x3FF) << 10) | ((lo >> 0) & 0x3FF));
                         y = scalePos((((hi >> 10) & 0x3FF) << 10) | ((lo >> 10) & 0x3FF));
                         z = scalePos((((hi >> 20) & 0x3FF) << 10) | ((lo >> 20) & 0x3FF));
 
@@ -175,23 +189,23 @@ public class SodiumResultCompatibility {
                     cy += y;
                     cz += z;
 
-                    if ((j&3) == 3) {
-                        //Compute the center point of the vertex
+                    if ((j & 3) == 3) {
+                        // Compute the center point of the vertex
                         cx *= 1 / 4f;
                         cy *= 1 / 4f;
                         cz *= 1 / 4f;
 
-                        //Distance to camera
-                        float dx = cx-cpx;
-                        float dy = cy-cpy;
-                        float dz = cz-cpz;
+                        // Distance to camera
+                        float dx = cx - cpx;
+                        float dy = cy - cpy;
+                        float dz = cz - cpz;
 
-                        float dist = dx*dx + dy*dy + dz*dz;
+                        float dist = dx * dx + dy * dy + dz * dz;
 
-                        int sortDistance = (int) (dist*(1<<12));
+                        int sortDistance = (int) (dist * (1 << 12));
 
-                        //We pack the sorting data
-                        long packedSortingData = (((long)sortDistance)<<32)|((((long) j>>2)<<3)|i);
+                        // We pack the sorting data
+                        long packedSortingData = (((long) sortDistance) << 32) | ((((long) j >> 2) << 3) | i);
                         sortingData[quadId++] = packedSortingData;
 
                         cx = 0;
@@ -209,17 +223,19 @@ public class SodiumResultCompatibility {
 
             for (int i = 0; i < sortingData.length; i++) {
                 long data = sortingData[i];
-                copyQuad(srcs[(int) (data&7)] + ((data>>3)&((1L<<29)-1))*4*formatSize, outPtr + ((sortingData.length-1)-i) * 4L * formatSize);
+                copyQuad(
+                        srcs[(int) (data & 7)] + ((data >> 3) & ((1L << 29) - 1)) * 4 * formatSize,
+                        outPtr + ((sortingData.length - 1) - i) * 4L * formatSize);
             }
             offset += quadCount;
         }
 
         outOffsets[7] = offset;
 
-        var solid  = result.meshes.get(DefaultTerrainRenderPasses.SOLID);
+        var solid = result.meshes.get(DefaultTerrainRenderPasses.SOLID);
         var cutout = result.meshes.get(DefaultTerrainRenderPasses.CUTOUT);
 
-        //Do all but translucent
+        // Do all but translucent
         var solidRanges = solid != null ? computeRanges(solid.getVertexSegments()) : null;
         var cutoutRanges = cutout != null ? computeRanges(cutout.getVertexSegments()) : null;
 
@@ -233,8 +249,7 @@ public class SodiumResultCompatibility {
                         outPtr + offset * 4L * formatSize,
                         formatSize,
                         min,
-                        max
-                );
+                        max);
             }
             if (cutout != null) {
                 offset += copyRange(
@@ -244,26 +259,25 @@ public class SodiumResultCompatibility {
                         outPtr + offset * 4L * formatSize,
                         formatSize,
                         min,
-                        max
-                );
+                        max);
             }
             outOffsets[i] = (short) (offset - poff);
         }
 
-        if (offset*4*formatSize != output.getLength()) {
-            throw new IllegalStateException("Nvidium bad build result got " + offset*4*formatSize + " instead of " + output.getLength() + " at " +
-                    result.section.getChunkX() + " " + result.section.getChunkY() + " " + result.section.getChunkZ());
+        if (offset * 4 * formatSize != output.getLength()) {
+            throw new IllegalStateException("Nvidium bad build result got " + offset * 4 * formatSize + " instead of "
+                    + output.getLength() + " at " + result.section.getChunkX() + " " + result.section.getChunkY() + " "
+                    + result.section.getChunkZ());
         }
     }
 
-
     private static float decodePosition(short v) {
-        return Short.toUnsignedInt(v)*(1f/2048.0f)-8.0f;
+        return Short.toUnsignedInt(v) * (1f / 2048.0f) - 8.0f;
     }
 
     private static float scalePos(int pos) {
-        float vertexScale = 32f / (float)((1<<20)-1);
-        return (((float)pos) * vertexScale) - 8;
+        float vertexScale = 32f / (float) ((1 << 20) - 1);
+        return (((float) pos) * vertexScale) - 8;
     }
 
     private static void updateSectionBounds(Vector3i min, Vector3i max, long vertex) {
@@ -273,7 +287,7 @@ public class SodiumResultCompatibility {
             int hi = MemoryUtil.memGetInt(vertex);
             int lo = MemoryUtil.memGetInt(vertex + 4);
 
-            x = scalePos((((hi >>  0) & 0x3FF) << 10) | ((lo >>  0) & 0x3FF));
+            x = scalePos((((hi >> 0) & 0x3FF) << 10) | ((lo >> 0) & 0x3FF));
             y = scalePos((((hi >> 10) & 0x3FF) << 10) | ((lo >> 10) & 0x3FF));
             z = scalePos((((hi >> 20) & 0x3FF) << 10) | ((lo >> 20) & 0x3FF));
 

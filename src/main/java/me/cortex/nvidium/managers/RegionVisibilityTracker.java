@@ -1,5 +1,8 @@
 package me.cortex.nvidium.managers;
 
+import static me.cortex.nvidium.backend.ShaderType.FRAGMENT;
+import static me.cortex.nvidium.backend.ShaderType.MESH;
+
 import me.cortex.nvidium.backend.Barrier;
 import me.cortex.nvidium.backend.IBuffer;
 import me.cortex.nvidium.backend.IRenderBackend;
@@ -9,9 +12,6 @@ import me.cortex.nvidium.util.DownloadTaskStream;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.system.MemoryUtil;
 
-import static me.cortex.nvidium.backend.ShaderType.FRAGMENT;
-import static me.cortex.nvidium.backend.ShaderType.MESH;
-
 public class RegionVisibilityTracker {
     private final IRenderBackend backend;
     private final IShader shader;
@@ -19,11 +19,18 @@ public class RegionVisibilityTracker {
     private final DownloadTaskStream downStream;
     private final int[] frustum;
     private final int[] visible;
+
     public RegionVisibilityTracker(IRenderBackend backend, DownloadTaskStream downStream, int maxRegions) {
         this.backend = backend;
         this.shader = backend.createShader()
-                .addSource(MESH, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/mesh.glsl")))
-                .addSource(FRAGMENT, ShaderLoader.parse(Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/fragment.frag")))
+                .addSource(
+                        MESH,
+                        ShaderLoader.parse(
+                                Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/mesh.glsl")))
+                .addSource(
+                        FRAGMENT,
+                        ShaderLoader.parse(
+                                Identifier.fromNamespaceAndPath("nvidium", "occlusion/queries/region/fragment.frag")))
                 .compile();
         this.downStream = downStream;
         visible = new int[maxRegions];
@@ -35,7 +42,7 @@ public class RegionVisibilityTracker {
     }
 
     private int frame = 0;
-    //This is kind of evil in the fact that it just reuses the visibility buffer
+    // This is kind of evil in the fact that it just reuses the visibility buffer
     public void computeVisibility(int regionCount, IBuffer regionVisibilityBuffer, short[] regionMapping) {
         frame++;
         backend.drawMeshTasks(shader, 0, (regionCount + 3) / 4);
@@ -43,17 +50,16 @@ public class RegionVisibilityTracker {
         downStream.download(regionVisibilityBuffer, 0, regionCount, ptr -> {
             for (int i = 0; i < regionMapping.length; i++) {
                 if (MemoryUtil.memGetByte(ptr + i) == 1) {
-                    //System.out.println(regionMapping[i] + " was visible");
+                    // System.out.println(regionMapping[i] + " was visible");
                     frustum[regionMapping[i]]++;
                     visible[regionMapping[i]] = frame;
                 } else {
-                    //System.out.println(regionMapping[i] + " was not visible");
+                    // System.out.println(regionMapping[i] + " was not visible");
                     frustum[regionMapping[i]]++;
                 }
             }
         });
     }
-
 
     public void delete() {
         shader.delete();
@@ -69,8 +75,8 @@ public class RegionVisibilityTracker {
         int id = -1;
         for (int i = 0; i < maxIndex; i++) {
             if (frustum[i] <= 200) continue;
-            int rank =  - visible[i];
-            //int rank = -visible[i];
+            int rank = -visible[i];
+            // int rank = -visible[i];
             if (maxRank < rank) {
                 maxRank = rank;
                 id = i;

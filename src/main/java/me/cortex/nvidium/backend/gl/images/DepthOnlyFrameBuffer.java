@@ -1,18 +1,19 @@
 package me.cortex.nvidium.backend.gl.images;
 
-import com.mojang.blaze3d.opengl.GlConst;
-import com.mojang.blaze3d.opengl.GlStateManager;
-
 import static org.lwjgl.opengl.ARBDirectStateAccess.*;
 import static org.lwjgl.opengl.GL11C.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11C.glDeleteTextures;
 import static org.lwjgl.opengl.GL30C.*;
+
+import com.mojang.blaze3d.opengl.GlConst;
+import com.mojang.blaze3d.opengl.GlStateManager;
 
 public class DepthOnlyFrameBuffer {
     public final int width;
     public final int height;
     private final int fid;
     private final int did;
+
     public DepthOnlyFrameBuffer(int width, int height) {
         this.width = width;
         this.height = height;

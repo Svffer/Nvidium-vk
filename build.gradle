@@ -1,6 +1,8 @@
 plugins {
     id 'net.neoforged.moddev' version '2.0.148'
     id 'maven-publish'
+    // Quality gates (see AGENTS.md, hk.pkl, mise.toml): formatter and compile-time bug patterns.
+    id 'com.diffplug.spotless' version '8.11.0'
 }
 
 def gitCommitHash = { ->
@@ -81,6 +83,7 @@ processResources {
 }
 
 repositories {
+    mavenCentral() // palantir-java-format
     exclusiveContent {
         forRepository {
             maven {
@@ -129,4 +132,18 @@ dependencies {
     implementation "net.caffeinemc:sodium-neoforge-api:${project.sodium_version}"
 
     compileOnly "maven.modrinth:iris:${project.iris_version}"
+}
+
+// ---------------------------------------------------------------------------------------------
+// Quality gates. `./gradlew spotlessCheck` is what hk.pkl runs before a commit;
+// `./gradlew spotlessApply` fixes formatting. Do not loosen these to get a change through:
+// a narrow exception with a reason is the only accepted way (see AGENTS.md).
+spotless {
+    java {
+        target 'src/**/*.java'
+        palantirJavaFormat('2.102.0') // 4-space, 120-column style close to the upstream code
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }

@@ -1,14 +1,5 @@
 package me.cortex.nvidium.backend.gl;
 
-import me.cortex.nvidium.backend.IShader;
-import me.cortex.nvidium.backend.IShaderBuilder;
-import me.cortex.nvidium.backend.IShaderProcessor;
-import me.cortex.nvidium.backend.ShaderType;
-import org.lwjgl.opengl.GL20C;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.lwjgl.opengl.GL20.GL_FRAGMENT_SHADER;
 import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
 import static org.lwjgl.opengl.GL20.glDeleteProgram;
@@ -16,6 +7,14 @@ import static org.lwjgl.opengl.GL20.glUseProgram;
 import static org.lwjgl.opengl.GL43C.GL_COMPUTE_SHADER;
 import static org.lwjgl.opengl.NVMeshShader.GL_MESH_SHADER_NV;
 import static org.lwjgl.opengl.NVMeshShader.GL_TASK_SHADER_NV;
+
+import java.util.HashMap;
+import java.util.Map;
+import me.cortex.nvidium.backend.IShader;
+import me.cortex.nvidium.backend.IShaderBuilder;
+import me.cortex.nvidium.backend.IShaderProcessor;
+import me.cortex.nvidium.backend.ShaderType;
+import org.lwjgl.opengl.GL20C;
 
 public class GlShader extends GlObject implements IShader {
     private GlShader(int program) {
@@ -64,7 +63,9 @@ public class GlShader extends GlObject implements IShader {
         @Override
         public GlShader compile() {
             int program = GL20C.glCreateProgram();
-            int[] shaders = sources.entrySet().stream().mapToInt(a->createShader(a.getKey(), a.getValue())).toArray();
+            int[] shaders = sources.entrySet().stream()
+                    .mapToInt(a -> createShader(a.getKey(), a.getValue()))
+                    .toArray();
 
             for (int i : shaders) {
                 GL20C.glAttachShader(program, i);

@@ -3,17 +3,16 @@ package me.cortex.nvidium.config;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import me.cortex.nvidium.Nvidium;
-import net.neoforged.fml.loading.FMLPaths;
-
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import me.cortex.nvidium.Nvidium;
+import net.neoforged.fml.loading.FMLPaths;
 
 public class NvidiumConfig {
-    //The options
+    // The options
     public boolean enable_temporal_coherence = true;
     public int max_geometry_memory = 2048;
     public boolean automatic_memory = true;
@@ -29,7 +28,6 @@ public class NvidiumConfig {
 
     public StatisticsLoggingLevel statistics_level = StatisticsLoggingLevel.NONE;
 
-
     private static final Gson GSON = new GsonBuilder()
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             .setPrettyPrinting()
@@ -37,6 +35,7 @@ public class NvidiumConfig {
             .create();
 
     private NvidiumConfig() {}
+
     public static NvidiumConfig loadOrCreate() {
         var path = getConfigPath();
         if (Files.exists(path)) {
@@ -50,7 +49,7 @@ public class NvidiumConfig {
     }
 
     public void save() {
-        //Unsafe, todo: fixme! needs to be atomic!
+        // Unsafe, todo: fixme! needs to be atomic!
         try {
             Files.writeString(getConfigPath(), GSON.toJson(this));
         } catch (IOException e) {
@@ -59,7 +58,6 @@ public class NvidiumConfig {
     }
 
     private static Path getConfigPath() {
-        return FMLPaths.CONFIGDIR.get()
-                .resolve("nvidium-config.json");
+        return FMLPaths.CONFIGDIR.get().resolve("nvidium-config.json");
     }
 }
