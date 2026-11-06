@@ -1,0 +1,6 @@
+# Ruff (https://github.com/astral-sh/ruff) for the benchmark helper scripts in bench/.
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
