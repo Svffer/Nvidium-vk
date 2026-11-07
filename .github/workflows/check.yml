@@ -2,6 +2,7 @@ name: check
 
 on:
   push:
+    branches: ['**'] # branches only: a release tag points at an older tree
   pull_request:
 
 jobs:
