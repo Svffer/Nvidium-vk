@@ -53,8 +53,8 @@ run (`bench/`). Vanilla Sodium on each backend is the baseline.
 
 With Distant Horizons (LOD radius 128, render distance 32): Vulkan Sodium 286 FPS, Vulkan Nvidium 303 FPS.
 At render distance 16 the frame is under a millisecond and nvidium's fixed per-frame work does not pay
-off; the mod is for large render distances. Full tables, 1 % lows and percentiles:
-[docs/VULKAN_PLAN.md §8](docs/VULKAN_PLAN.md), raw data in `docs/bench-results.jsonl`.
+off; the mod is for large render distances. Raw data of every run, with 1 % lows and percentiles: `docs/bench-results.jsonl`
+(`bench/summary.py` prints the table).
 
 | OpenGL | Vulkan |
 |---|---|
@@ -71,9 +71,8 @@ occlusion raster, command build, temporal draw) unchanged. The GLSL shaders exis
 upstream's `GL_NV_mesh_shader` sources and a `GL_EXT_mesh_shader` / `GL_EXT_buffer_reference2`
 translation under `assets/nvidium/shaders/vk/`, compiled at runtime with shaderc.
 
-The design, the milestones and what was measured along the way are in
-[docs/VULKAN_PLAN.md](docs/VULKAN_PLAN.md); how Mojang's Vulkan backend runs a frame, with source
-references, is in [docs/VULKAN_FRAME_PROTOCOL.md](docs/VULKAN_FRAME_PROTOCOL.md).
+The class-level Javadoc under `backend/vk` describes how each piece fits into Mojang's frame (one
+submit per frame, timeline-semaphore completion, deferred destruction, push descriptors).
 
 ## Building
 

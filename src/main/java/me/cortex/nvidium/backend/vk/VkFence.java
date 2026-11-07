@@ -6,7 +6,7 @@ import me.cortex.nvidium.backend.TrackedObject;
 
 /**
  * Mojang's Vulkan backend has no {@code VkFence}s: completion is tracked by one timeline semaphore whose
- * value is the submit index (docs/VULKAN_FRAME_PROTOCOL.md §2.3). {@code encoder.createFence()} captures
+ * value is the submit index (the Vulkan frame-protocol notes). {@code encoder.createFence()} captures
  * the index of the submit being recorded, and {@code awaitCompletion(0)} polls it without blocking.
  */
 public final class VkFence extends TrackedObject implements IFence {

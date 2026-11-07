@@ -48,7 +48,7 @@ neoForge {
             client()
             jvmArguments.addAll("-Xmx8G")
 
-            // Benchmark harness (docs/VULKAN_PLAN.md, M0):
+            // Benchmark harness (the Vulkan plan, M0):
             //   ./gradlew runClient -PbenchLabel="gl+nvidium" [-PbenchWorld="New World"]
             //            [-PnvidiumDisable=true] [-PbenchWarmup=45] [-PbenchDuration=60]
             if (project.hasProperty('benchLabel')) {
@@ -72,7 +72,7 @@ neoForge {
             if (project.hasProperty('nvidiumDisable')) {
                 systemProperties.put('nvidium.forceDisable', 'true')
             }
-            // Vulkan backend GPU round-trip test, runs once after device creation (docs/VULKAN_PLAN.md, M3)
+            // Vulkan backend GPU round-trip test, runs once after device creation (the Vulkan plan, M3)
             if (project.hasProperty('vkSelfTest')) {
                 systemProperties.put('nvidium.vkSelfTest', 'true')
             }

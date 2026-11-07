@@ -45,7 +45,7 @@ import org.lwjgl.vulkan.VkViewport;
 import org.lwjgl.vulkan.VkWriteDescriptorSet;
 
 /**
- * nvidium on Mojang's Vulkan backend (docs/VULKAN_PLAN.md M3–M5). Memory: buffers with device addresses from
+ * nvidium on Mojang's Vulkan backend (the Vulkan plan M3–M5). Memory: buffers with device addresses from
  * an own VMA allocator; fences on the submit index. Frame: everything is recorded on Mojang's main command
  * buffer between its render passes. Inside a layer ({@link #beginLayer}/{@link #endLayer}) nvidium opens its
  * own dynamic-rendering instance lazily for draws and closes it again before any copy, fill, barrier or

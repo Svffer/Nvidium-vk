@@ -9,7 +9,7 @@ import org.lwjgl.vulkan.VkCommandBuffer;
 import org.lwjgl.vulkan.VkDevice;
 
 /**
- * The handles nvidium needs from Mojang's Vulkan backend (docs/VULKAN_FRAME_PROTOCOL.md §8.1). One per
+ * The handles nvidium needs from Mojang's Vulkan backend (the Vulkan frame-protocol notes). One per
  * {@code GpuDevice}; cheap to construct, holds no resources of its own.
  */
 public final class VkContext {

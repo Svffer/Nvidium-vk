@@ -1,4 +1,4 @@
-"""Offline check of nvidium's Vulkan shaders with glslc (docs/VULKAN_PLAN.md, M4).
+"""Offline check of nvidium's Vulkan shaders with glslc (the Vulkan plan, M4).
 
 Resolves `#moj_import <ns:path>` the way ShaderLoader does (assets/<ns>/shaders/<path>), injects
 the defines ShaderLoader would add for a given configuration, and compiles every entry point under

@@ -30,14 +30,14 @@ import org.lwjgl.vulkan.VkPhysicalDeviceVulkan11Features;
 import org.lwjgl.vulkan.VkPhysicalDeviceVulkan12Features;
 
 /**
- * M2 of docs/VULKAN_PLAN.md: device bootstrap. Mojang creates the {@code VkDevice} with a fixed set of
+ * M2 of the Vulkan plan: device bootstrap. Mojang creates the {@code VkDevice} with a fixed set of
  * extensions and features; device features can only be enabled at creation, so
  * {@link me.cortex.nvidium.mixin.minecraft.vk.MixinVulkanBackend} calls {@link #extendDeviceCreation}
  * right before {@code vkCreateDevice} to add what nvidium's mesh-shader pipeline needs, each one only
  * if the physical device supports it. {@link #onDeviceCreated} then records the outcome.
  *
  * <p>Everything is probed the way Mojang does it ({@link VulkanFeature} over a
- * {@code VkPhysicalDeviceFeatures2} pNext chain), see docs/VULKAN_FRAME_PROTOCOL.md §1.
+ * {@code VkPhysicalDeviceFeatures2} pNext chain), see the Vulkan frame-protocol notes.
  */
 public final class VkDeviceBootstrap {
     private VkDeviceBootstrap() {}

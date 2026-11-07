@@ -14,7 +14,7 @@ import org.lwjgl.vulkan.VkShaderModuleCreateInfo;
 /**
  * GLSL → SPIR-V → {@code VkShaderModule} with LWJGL's shaderc. Mojang's {@code GlslCompiler} cannot be
  * reused: it hard-codes the vertex/fragment kinds and patches the SPIR-V afterwards
- * (docs/VULKAN_FRAME_PROTOCOL.md §7.1). Target Vulkan 1.2 / SPIR-V 1.5, which {@code GL_EXT_mesh_shader}
+ * (the Vulkan frame-protocol notes). Target Vulkan 1.2 / SPIR-V 1.5, which {@code GL_EXT_mesh_shader}
  * requires (≥ 1.4).
  */
 public final class VkSpirvCompiler implements AutoCloseable {

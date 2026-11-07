@@ -17,7 +17,7 @@ import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
 import org.lwjgl.vulkan.VkPushConstantRange;
 
 /**
- * M3 exit criterion (docs/VULKAN_PLAN.md): a GPU round trip in the dev client. Enabled with
+ * M3 exit criterion (the Vulkan plan): a GPU round trip in the dev client. Enabled with
  * {@code -Dnvidium.vkSelfTest=true} (Gradle: {@code -PvkSelfTest}); runs once right after Mojang created
  * the Vulkan device, before the first frame.
  *

@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 /**
  * Reaches the per-frame state of Mojang's single {@code VulkanCommandEncoder}
- * (docs/VULKAN_FRAME_PROTOCOL.md §2, §8.1).
+ * (the Vulkan frame-protocol notes).
  */
 @Mixin(VulkanCommandEncoder.class)
 public interface VulkanCommandEncoderAccessor {

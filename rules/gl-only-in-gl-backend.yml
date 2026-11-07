@@ -1,4 +1,4 @@
-# Backend boundary (docs/VULKAN_PLAN.md §2, M1): everything that talks to OpenGL lives in
+# Backend boundary (the Vulkan plan §2, M1): everything that talks to OpenGL lives in
 # me.cortex.nvidium.backend.gl or in the GL-specific mixins. The rest of the mod goes through
 # me.cortex.nvidium.backend.IRenderBackend so that a Vulkan backend can be added next to it.
 id: gl-only-in-gl-backend

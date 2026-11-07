@@ -20,7 +20,7 @@ import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties;
 
 /**
  * nvidium's own VMA allocator on Mojang's {@code VkDevice}. Mojang's allocator is created without
- * {@code VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT} (docs/VULKAN_FRAME_PROTOCOL.md §1.3), and all of
+ * {@code VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT} (the Vulkan frame-protocol notes), and all of
  * nvidium's device buffers are reached through 64-bit device addresses, so a second allocator is the
  * least invasive option. Lives as long as the Vulkan render backend.
  */

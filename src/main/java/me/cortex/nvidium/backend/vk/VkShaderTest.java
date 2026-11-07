@@ -10,7 +10,7 @@ import net.minecraft.client.renderer.ShaderDefines;
 import net.minecraft.resources.Identifier;
 
 /**
- * M4 exit check (docs/VULKAN_PLAN.md): compile every Vulkan entry shader through the real runtime path
+ * M4 exit check (the Vulkan plan): compile every Vulkan entry shader through the real runtime path
  * (resource manager → {@link ShaderLoader} with the configured defines → shaderc → {@code VkShaderModule}).
  * Enabled with {@code -Dnvidium.vkShaderTest=true} (Gradle {@code -PvkShaderTest}); runs once, on the first
  * terrain render of a world, because the resource manager is not available at device creation.

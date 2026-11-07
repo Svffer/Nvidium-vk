@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * Device bootstrap (plan M2). The private static {@code createDevice(Collection, VulkanPhysicalDevice, Set)}
  * receives the mutable extension and feature sets that go straight into {@code VkDeviceCreateInfo}
- * (docs/VULKAN_FRAME_PROTOCOL.md §1.4), so adding to them at its head is all that is needed.
+ * (the Vulkan frame-protocol notes), so adding to them at its head is all that is needed.
  */
 @Mixin(VulkanBackend.class)
 public class MixinVulkanBackend {
