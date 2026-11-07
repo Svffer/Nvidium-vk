@@ -17,7 +17,7 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
 /**
- * Dev-only, fully automatic frame-time benchmark (plan milestone M0).
+ * Dev-only, fully automatic frame-time benchmark.
  *
  * Enabled with {@code -Dnvidium.bench=true}. Expects the game to be launched with
  * {@code --quickPlaySingleplayer <world>} so it lands directly in a world.
@@ -36,10 +36,10 @@ import net.neoforged.neoforge.common.NeoForge;
  *   nvidium.bench.pos       "x,y,z,yaw,pitch" — default: spawn XZ, y=110, yaw 45, pitch 20
  *   nvidium.bench.f3        show the F3 overlay while measuring, so the screenshot carries the nvidium statistics
  *   nvidium.bench.travel    memory soak: while measuring, teleport 48 blocks along +X every 2 s (chunks stream in,
- *                           regions get evicted, the arena grows) and log nvidium's memory every 10 s (plan M7)
+ *                           regions get evicted, the arena grows) and log nvidium's memory every 10 s
  *   nvidium.bench.stress    during warm-up: resize the window (5 s), restore it (9 s), toggle fullscreen on
  *                           (13 s) and off (17 s), reload resource packs (21 s) — swapchain and render-target
- *                           recreation plus a full shader/renderer reload (plan M6)
+ *                           recreation plus a full shader/renderer reload
  *
  * One second into measuring a screenshot of the main render target is written to
  * {@code screenshots/bench-<label>-rd<n>.png}, so runs on different backends can be compared visually.

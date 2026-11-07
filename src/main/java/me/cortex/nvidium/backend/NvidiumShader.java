@@ -5,7 +5,7 @@ import net.minecraft.resources.Identifier;
 /**
  * The shader sources of the renderer, with the resource path of each backend's version (relative to
  * {@code assets/nvidium/shaders/}). The GL files are NVIDIA GLSL (NV_mesh_shader, bindless, pointers);
- * the {@code vk/} files are the GL_EXT_mesh_shader / buffer_reference2 translation (plan M4).
+ * the {@code vk/} files are the GL_EXT_mesh_shader / buffer_reference2 translation.
  */
 public enum NvidiumShader {
     TERRAIN_TASK("terrain/task.glsl", "vk/terrain/task.task", ShaderType.TASK),

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.mixin.minecraft.GpuDeviceAccessor;
+import me.cortex.nvidium.util.DevHooks;
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.EXTConservativeRasterization;
@@ -30,7 +31,7 @@ import org.lwjgl.vulkan.VkPhysicalDeviceVulkan11Features;
 import org.lwjgl.vulkan.VkPhysicalDeviceVulkan12Features;
 
 /**
- * M2 of the Vulkan plan: device bootstrap. Mojang creates the {@code VkDevice} with a fixed set of
+ * Device bootstrap. Mojang creates the {@code VkDevice} with a fixed set of
  * extensions and features; device features can only be enabled at creation, so
  * {@link me.cortex.nvidium.mixin.minecraft.vk.MixinVulkanBackend} calls {@link #extendDeviceCreation}
  * right before {@code vkCreateDevice} to add what nvidium's mesh-shader pipeline needs, each one only
@@ -205,7 +206,7 @@ public final class VkDeviceBootstrap {
 
     /**
      * Called by the mixin at the head of {@code VulkanDevice.close()}: queues the backend's teardown into the
-     * encoder's destruction queue, which Mojang drains right after (plan M6, "world unload without leaks").
+     * encoder's destruction queue, which Mojang drains right after (world unload without leaks).
      */
     public static void onDeviceClosing() {
         if (backend != null) {
@@ -238,7 +239,7 @@ public final class VkDeviceBootstrap {
 
     /**
      * Called by the mixin when Mojang's {@code createDevice} returns. Creates the Vulkan render backend and
-     * enables nvidium through {@link Nvidium#initBackend} when every requirement is met (plan M5), exactly as
+     * enables nvidium through {@link Nvidium#initBackend} when every requirement is met, exactly as
      * the GL device mixin does for OpenGL.
      */
     public static void onDeviceCreated(GpuDevice device) {
@@ -264,7 +265,12 @@ public final class VkDeviceBootstrap {
                     caps.conservativeRasterization());
             Nvidium.LOGGER.info("Mesh shader limits: {}", caps.meshLimits());
             if (Boolean.getBoolean("nvidium.vkSelfTest")) {
-                VkSelfTest.run(device, caps);
+                DevHooks.invoke(
+                        "me.cortex.nvidium.backend.vk.VkSelfTest",
+                        "run",
+                        new Class<?>[] {GpuDevice.class, VkDeviceCapabilities.class},
+                        device,
+                        caps);
             }
             backend = new VkRenderBackend(ctx, caps);
             Nvidium.initBackend(backend);

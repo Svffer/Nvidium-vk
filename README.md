@@ -83,7 +83,7 @@ submit per frame, timeline-semaphore completion, deferred destruction, push desc
 
 Java 25 is required (the Gradle toolchain plugin downloads one). The quality gate used for every change
 is `mise run check` (formatting, Error Prone, lint rules, an offline compile of every Vulkan shader with
-`glslc`, secret scan); see [AGENTS.md](AGENTS.md) for the rules and the benchmark harness under `bench/`.
+`glslc`, secret scan); the tools are pinned in `mise.toml`. Benchmark scripts live under `bench/`.
 
 ## Known limitations
 

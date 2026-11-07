@@ -25,9 +25,9 @@ import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
 import org.lwjgl.vulkan.VkPipelineViewportStateCreateInfo;
 
 /**
- * Pipeline layout and pipeline creation for nvidium's Vulkan shaders (plan M5).
+ * Pipeline layout and pipeline creation for nvidium's Vulkan shaders.
  *
- * <p>All programs share one pipeline layout with a single push-descriptor set, fixed by the M4 shaders:
+ * <p>All programs share one pipeline layout with a single push-descriptor set, fixed by the shaders:
  * binding 0 block atlas, 1 lightmap (combined image samplers), 2 scene UBO. Descriptors are pushed before
  * every draw and dispatch, because Mojang binds its own, incompatible layouts in between. There are no push
  * constants: every buffer is reached through the 64-bit addresses in the scene block.

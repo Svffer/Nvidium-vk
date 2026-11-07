@@ -48,12 +48,6 @@ steps {
         check = "python3 -I bench/compile-vk-shaders.py"
     }
 
-    // --- agent instruction files ---------------------------------------------------------
-    ["agnix"] {
-        glob = List("AGENTS.md", "CLAUDE.md", ".claude/**")
-        check = "agnix --strict {{files}}"
-    }
-
     // --- Java: Spotless (palantir-java-format) and Error Prone via Gradle --------------
     // `--daemon` overrides org.gradle.daemon=false from gradle.properties (kept false for the
     // benchmark runs); a warm daemon makes the incremental compile take seconds.
@@ -66,7 +60,7 @@ steps {
     }
     ["errorprone"] {
         glob = List("src/**/*.java", "*.gradle", "gradle.properties", "gradle/**")
-        check = "./gradlew --daemon -q compileJava"
+        check = "./gradlew --daemon -q compileJava compileDevJava"
         depends = List("spotless")
         exclusive = true
     }

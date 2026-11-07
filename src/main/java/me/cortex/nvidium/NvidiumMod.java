@@ -1,5 +1,6 @@
 package me.cortex.nvidium;
 
+import me.cortex.nvidium.util.DevHooks;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.common.Mod;
 
@@ -12,7 +13,7 @@ public class NvidiumMod {
     public NvidiumMod() {
         Nvidium.LOGGER.info("Nvidium {} loaded on NeoForge", Nvidium.MOD_VERSION);
         if (Boolean.getBoolean("nvidium.bench")) {
-            me.cortex.nvidium.bench.BenchHarness.install();
+            DevHooks.invoke("me.cortex.nvidium.bench.BenchHarness", "install", new Class<?>[0]);
         }
     }
 }

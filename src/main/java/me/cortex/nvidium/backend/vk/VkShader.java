@@ -18,7 +18,7 @@ import org.lwjgl.vulkan.VK12;
  * nvidium's Vulkan "program": one {@code VkShaderModule} per stage, compiled from GLSL with shaderc at
  * construction, plus the {@code VkPipeline}s built from them on first use. A program with a COMPUTE stage
  * has one compute pipeline; TASK/MESH/FRAGMENT programs get one graphics pipeline per
- * {@link VkPipelineFactory.GraphicsState} they are drawn in (plan M5). Everything shares the factory's
+ * {@link VkPipelineFactory.GraphicsState} they are drawn in. Everything shares the factory's
  * pipeline layout.
  */
 public final class VkShader extends TrackedObject implements IShader {

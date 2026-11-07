@@ -32,7 +32,7 @@ mkdir -p run/logs
 echo "=== $label rd=$rd backend=$backend $*"
 for attempt in $(seq 1 "$ATTEMPTS"); do
   before=$(wc -l < run/bench-results.jsonl 2>/dev/null || echo 0)
-  bench/park-window.sh "${BENCH_WS:-5}" &
+  if [ -x bench/park-window.sh ]; then bench/park-window.sh "${BENCH_WS:-5}" & else sleep 0 & fi  # optional local helper
   parker=$!
   timeout --kill-after=15 "$TIMEOUT" \
      ./gradlew runClient --no-daemon -q -PbenchLabel="$label" -PbenchWarmup="$WARMUP" -PbenchDuration="$DURATION" -PbenchPos="$POS" "$@" \

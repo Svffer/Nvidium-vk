@@ -1,7 +1,7 @@
 plugins {
     id 'net.neoforged.moddev' version '2.0.148'
     id 'maven-publish'
-    // Quality gates (see AGENTS.md, hk.pkl, mise.toml): formatter and compile-time bug patterns.
+    // Quality gates (see hk.pkl, mise.toml): formatter and compile-time bug patterns.
     id 'com.diffplug.spotless' version '8.11.0'
     id 'net.ltgt.errorprone' version '5.2.0'
 }
@@ -37,6 +37,17 @@ base {
     archivesName = "nvidium-vk"
 }
 
+// Development-only code (benchmark harness, Vulkan self-tests). Compiled against main, loaded by
+// `runClient`, never packaged: `jar` only takes sourceSets.main. main reaches it through
+// me.cortex.nvidium.util.DevHooks (reflection), so a release jar simply has no such classes.
+sourceSets {
+    dev {
+        java.srcDir 'src/dev/java'
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
 neoForge {
     version = project.neo_version
 
@@ -48,7 +59,7 @@ neoForge {
             client()
             jvmArguments.addAll("-Xmx8G")
 
-            // Benchmark harness (the Vulkan plan, M0):
+            // Benchmark harness:
             //   ./gradlew runClient -PbenchLabel="gl+nvidium" [-PbenchWorld="New World"]
             //            [-PnvidiumDisable=true] [-PbenchWarmup=45] [-PbenchDuration=60]
             if (project.hasProperty('benchLabel')) {
@@ -72,11 +83,11 @@ neoForge {
             if (project.hasProperty('nvidiumDisable')) {
                 systemProperties.put('nvidium.forceDisable', 'true')
             }
-            // Vulkan backend GPU round-trip test, runs once after device creation (the Vulkan plan, M3)
+            // Vulkan backend GPU round-trip test, runs once after device creation
             if (project.hasProperty('vkSelfTest')) {
                 systemProperties.put('nvidium.vkSelfTest', 'true')
             }
-            // Compile every Vulkan shader through the runtime path on the first world render (M4)
+            // Compile every Vulkan shader through the runtime path on the first world render
             if (project.hasProperty('vkShaderTest')) {
                 systemProperties.put('nvidium.vkShaderTest', 'true')
             }
@@ -90,6 +101,7 @@ neoForge {
     mods {
         nvidium {
             sourceSet sourceSets.main
+            sourceSet sourceSets.dev // dev-only tooling (bench harness, self-tests): on the runClient classpath, not in the jar
         }
     }
 }
@@ -161,7 +173,7 @@ dependencies {
 // ---------------------------------------------------------------------------------------------
 // Quality gates. `./gradlew spotlessCheck compileJava` is what hk.pkl runs before a commit;
 // `./gradlew spotlessApply` fixes formatting. Do not loosen these to get a change through:
-// a narrow exception with a reason is the only accepted way (see AGENTS.md).
+// a narrow exception with a reason is the only accepted way.
 spotless {
     java {
         target 'src/**/*.java'

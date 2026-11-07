@@ -3,8 +3,8 @@ package me.cortex.nvidium.mixin.sodium;
 import com.mojang.blaze3d.textures.GpuSampler;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.NvidiumWorldRenderer;
-import me.cortex.nvidium.backend.vk.VkShaderTest;
 import me.cortex.nvidium.sodiumCompat.INvidiumWorldRendererGetter;
+import me.cortex.nvidium.util.DevHooks;
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderMatrices;
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionManager;
@@ -28,6 +28,12 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
 
     @Unique
     private Viewport viewport;
+
+    @Unique
+    private static final boolean VK_SHADER_TEST = Boolean.getBoolean("nvidium.vkShaderTest");
+
+    @Unique
+    private static boolean vkShaderTestDone;
 
     @Override
     public NvidiumWorldRenderer getRenderer() {
@@ -60,7 +66,10 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
             FogParameters fogParameters,
             GpuSampler terrainSampler,
             CallbackInfo ci) {
-        VkShaderTest.runOnce(); // dev only (-Dnvidium.vkShaderTest), no-op otherwise
+        if (VK_SHADER_TEST && !vkShaderTestDone) { // dev only (-Dnvidium.vkShaderTest)
+            vkShaderTestDone = true;
+            DevHooks.invoke("me.cortex.nvidium.backend.vk.VkShaderTest", "runOnce", new Class<?>[0]);
+        }
 
         if (Nvidium.IS_ENABLED) {
             ci.cancel();

@@ -31,7 +31,7 @@ run_one() { # label backend lodRadius [extra gradle props]
   local attempt before
   for attempt in 1 2 3; do
     before=$(wc -l < run/bench-results.jsonl 2>/dev/null || echo 0)
-    bench/park-window.sh "${BENCH_WS:-5}" &
+    if [ -x bench/park-window.sh ]; then bench/park-window.sh "${BENCH_WS:-5}" & else sleep 0 & fi  # optional local helper
     local parker=$!
   ./gradlew runClient --no-daemon -q -PbenchLabel="$label" -PbenchWarmup="$WARMUP" -PbenchDuration="$DURATION" -PbenchPos="$POS" "$@" \
        > "run/logs/bench-$label-lod$lod.out" 2>&1 || echo "    (gradle exit $? — see run/logs/bench-$label-lod$lod.out)"

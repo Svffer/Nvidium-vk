@@ -17,7 +17,7 @@ import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
 import org.lwjgl.vulkan.VkPushConstantRange;
 
 /**
- * M3 exit criterion (the Vulkan plan): a GPU round trip in the dev client. Enabled with
+ * GPU round-trip self-test in the dev client. Enabled with
  * {@code -Dnvidium.vkSelfTest=true} (Gradle: {@code -PvkSelfTest}); runs once right after Mojang created
  * the Vulkan device, before the first frame.
  *
@@ -31,7 +31,7 @@ import org.lwjgl.vulkan.VkPushConstantRange;
  *   <li>compare with the CPU result.
  * </ol>
  *
- * This exercises exactly the pieces M4/M5 build on: own VMA allocator with device addresses, shaderc →
+ * This exercises exactly the pieces the renderer builds on: own VMA allocator with device addresses, shaderc →
  * SPIR-V → pipeline, barriers and copies on Mojang's main command buffer, completion via the submit index,
  * deferred destruction.
  */
@@ -167,7 +167,7 @@ public final class VkSelfTest {
         return i * 0x9E37_79B9 + 0x1234_5678;
     }
 
-    /** A compute pipeline with one push-constant range; the minimum needed here, generalised in M4/M5. */
+    /** A compute pipeline with one push-constant range; the minimum needed here; the renderer uses VkPipelineFactory. */
     private record ComputeProgram(long module, long layout, long pipeline, int pushSize) {
         static ComputeProgram create(VkContext ctx, String name, String glsl, int pushSize) {
             ByteBuffer spirv;
